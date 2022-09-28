@@ -1,6 +1,9 @@
 # Weighted KG
 本库基于libkge进行改写，更多详细用法请看
 https://github.com/uma-pi1/kge
+目前实现的model有transe,distmult,conve,complex,rescal
+方法有1vsAll,negative_sampling
+
 ## 目录
 - how to use
 - how to modify
