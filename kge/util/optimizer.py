@@ -10,12 +10,12 @@ class KgeOptimizer:
     """ Wraps torch optimizers """
 
     @staticmethod
-    def create(config, model):
+    def create(config, model,type = 0):
         """ Factory method for optimizer creation """
         try:
             optimizer = getattr(torch.optim, config.get("train.optimizer.default.type"))
             return optimizer(
-                KgeOptimizer._get_parameters_and_optimizer_args(config, model),
+                KgeOptimizer._get_parameters_and_optimizer_args(config, model,type),
                 **config.get("train.optimizer.default.args"),
             )
         except AttributeError:
@@ -26,7 +26,7 @@ class KgeOptimizer:
             )
 
     @staticmethod
-    def _get_parameters_and_optimizer_args(config, model):
+    def _get_parameters_and_optimizer_args(config, model,type = 0):
         """
         Group named parameters by regex strings provided with optimizer args.
         Constructs a list of dictionaries of the form:
@@ -88,10 +88,33 @@ class KgeOptimizer:
                 {"params": default_parameters, "name": "default"}
             )
         else:
-            # no parameters matched, add everything to default group
-            resulting_parameters.append(
-                {"params": model.parameters(), "name": "default"}
-            )
+            # param_2 is Weight ,while param_1 is other params
+
+            def is_Weight(p):
+            # Weighte has shape like [entity_num] or [relation_num]
+                if len(p.shape)==1 and (p.shape[0]==model._entity_embedder.vocab_size or p.shape[0]==model._relation_embedder.vocab_size):
+                    return True
+                else:
+                    return False
+            def isnot_Weight(p):
+                return not is_Weight(p)
+            param_1 = filter(isnot_Weight,model.parameters())
+            param_2 = filter(is_Weight,model.parameters())
+            # param_1 = filter(lambda p:len(p.shape)>1,model.parameters())
+            # param_2 = filter(lambda p:len(p.shape)==1,model.parameters())
+            if type == 0:
+                # no parameters matched, add everything to default group
+                resulting_parameters.append(
+                    {"params": model.parameters(), "name": "default"}
+                )
+            elif type==1:
+                resulting_parameters.append(
+                    {"params": param_1, "name": "default"}
+                )
+            elif type==2:
+                resulting_parameters.append(
+                    {"params": param_2, "name": "default"}
+                )
         return resulting_parameters
 
 

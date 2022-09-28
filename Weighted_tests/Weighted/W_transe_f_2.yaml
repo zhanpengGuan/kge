@@ -1,0 +1,80 @@
+dataset:
+  name: fb15k-237
+eval:
+  batch_size: 256
+  metrics_per:
+    relation_type: true
+  trace_level: example
+import:
+- W_transe
+- reciprocal_relations_model
+- final_W_negative_sampling
+lookup_embedder:
+  dim: 128
+  initialize: uniform_
+  initialize_args:
+    normal_:
+      mean: 0.0
+      std: 3.5688807324453804e-05
+    uniform_:
+      a: -1.0000000000065512e-05
+    xavier_normal_:
+      gain: 1.0
+    xavier_uniform_:
+      gain: 1.0
+  regularize: ''  
+model: reciprocal_relations_model
+final_W_negative_sampling:
+  num_samples:
+    o: 192
+    p: -1
+    s: 61
+reciprocal_relations_model:
+  base_model:
+    type: W_transe
+train:
+  auto_correct: true
+  batch_size: 512
+  loss: W_kl
+  loss_arg: 1.0
+  lr_scheduler: ReduceLROnPlateau
+  lr_scheduler_args:
+    factor: 0.95
+    mode: max
+    patience: 5
+    threshold: 0.0001
+  max_epochs: 400
+  optimizer: Adam
+  optimizer_args:
+    lr: 0.00030000000000000014
+
+  type: final_W_negative_sampling
+W_transe:
+  entity_embedder:
+    pretrain:
+      model_filename: local/experiments/20220915-040350-transe_best/checkpoint_best.pt
+    dropout: -0.3519595685173064
+    normalize:
+      p: -1.0
+    regularize_weight: 7.469488745511875e-12
+  l_norm: 2.0
+  relation_embedder:
+    pretrain:
+      model_filename: local/experiments/20220915-040350-transe_best/checkpoint_best.pt
+    dropout: -0.17305121371616672
+    normalize:
+      p: -1.0
+    regularize_weight: 1.8180176908040284e-07
+  clip: 20
+  init: False
+  require_grad_relation: True
+  require_grad_entity: True
+  golden_ratio: 0.2
+valid:
+  every: 2
+  early_stopping:
+    min_threshold:
+      epochs: 50
+      metric_value: 0.05
+    patience: 20
+

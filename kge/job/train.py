@@ -151,6 +151,7 @@ class TrainingJob(TrainingOrEvaluationJob):
         checkpoint_keep = self.config.get("train.checkpoint.keep")
         metric_name = self.config.get("valid.metric")
         patience = self.config.get("valid.early_stopping.patience")
+        self.status_2 = None
         while True:
             # checking for model improvement according to metric_name
             # and do early stopping and keep the best checkpoint
@@ -203,14 +204,24 @@ class TrainingJob(TrainingOrEvaluationJob):
             # start a new epoch
             self.epoch += 1
             self.config.log("Starting epoch {}...".format(self.epoch))
-            trace_entry = self.run_epoch()
+            if hasattr(self.model,'_base_model'):
+                if self.model._base_model.model.startswith('W_'):
+                    trace_entry = self.run_epoch_v()
+            elif self.model.model.startswith('W_'):
+                trace_entry = self.run_epoch_v()
+            else:
+                trace_entry = self.run_epoch()
             self.config.log("Finished epoch {}.".format(self.epoch))
 
             # update model metadata
             self.model.meta["train_job_trace_entry"] = self.trace_entry
             self.model.meta["train_epoch"] = self.epoch
             self.model.meta["train_config"] = self.config
+            
             self.model.meta["train_trace_entry"] = trace_entry
+            
+            # Bi-level Optimization with valid set
+           
 
             # validate
             lr_metric = None
@@ -254,7 +265,7 @@ class TrainingJob(TrainingOrEvaluationJob):
                         self._delete_checkpoint(delete_checkpoint_epoch)
 
         self.trace(event="train_completed")
-
+    
     def _delete_checkpoint(self, checkpoint_id):
         """Try to delete checkpoint specified by id"""
         if os.path.exists(self.config.checkpoint_file(checkpoint_id)):
@@ -379,6 +390,10 @@ class TrainingJob(TrainingOrEvaluationJob):
                         batch_index, batch
                     )
                     done = True
+                    # if self.optimizer.param_groups[0]['params'][0].grad is not None:
+                    #     if torch.equal(self.optimizer.param_groups[0]['params'][0].grad,torch.zeros(14541).cuda()):
+                    #         print("------------------------1------------------")
+
                 except RuntimeError as e:
                     # is it a CUDA OOM exception and are we allowed to reduce the
                     # subbatch size on such an error? if not, raise the exception again
@@ -464,7 +479,7 @@ class TrainingJob(TrainingOrEvaluationJob):
                             torch.cuda.max_memory_allocated(self.device),
                         )
                     )
-
+    
             # update parameters
             batch_optimizer_time = -time.time()
             if not self.is_forward_only:

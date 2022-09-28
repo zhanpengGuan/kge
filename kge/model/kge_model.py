@@ -459,6 +459,9 @@ class KgeModel(KgeBase):
         else:
             self._scorer = scorer
 
+    
+        
+
     # overridden to also set self.model
     def _init_configuration(self, config: Config, configuration_key: Optional[str]):
         Configurable._init_configuration(self, config, configuration_key)
@@ -578,7 +581,7 @@ class KgeModel(KgeBase):
             config.log_folder = checkpoint["folder"]
             if not config.log_folder or not os.path.exists(config.log_folder):
                 config.log_folder = "."
-        dataset = Dataset.create_from(checkpoint, config, dataset, preload_data=False)
+        dataset = Dataset.create_from(checkpoint, config, dataset, preload_data=True)#change at 2022//9/13/22:44
         model = KgeModel.create(config, dataset, init_for_load_only=True)
         model.load(checkpoint["model"])
         model.eval()
@@ -674,6 +677,14 @@ class KgeModel(KgeBase):
         score of triple :math:`(s_i, p_i, o_i)`.
 
         """
+        # Bi-level update get s,p,o assumed data 
+        if hasattr(self._base_model,'W_update'):
+            if self._base_model.W_update == True:
+                s = self._base_model.assumed_emb[0][s.long()]
+                p = self._base_model.assumed_emb[1][p.long()]
+                o = self._base_model.assumed_emb[0][o.long()]
+                return self._scorer.score_emb(s, p, o, combine="spo").view(-1)
+
         s = self.get_s_embedder().embed(s)
         p = self.get_p_embedder().embed(p)
         o = self.get_o_embedder().embed(o)
@@ -692,6 +703,27 @@ class KgeModel(KgeBase):
         If `o` is not None, it is a vector holding the indexes of the objects to score.
 
         """
+        # Bi-level update get s,p,o assumed data 
+        if hasattr(self,"_base_model"):
+            if hasattr(self._base_model,'W_update'):
+                if self._base_model.W_update == True:
+                    s = self._base_model.assumed_emb[0][s.long()]
+                    p = self._base_model.assumed_emb[1][p.long()]
+                    if o is None:
+                        o = self._base_model.assumed_emb[0]
+                    else:
+                        o = self._base_model.assumed_emb[0][o.long()]
+                    return self._scorer.score_emb(s, p, o, combine="sp_")
+        else:
+            if hasattr(self,'W_update'):
+                if self.W_update == True:
+                    s = self.assumed_emb[0][s.long()]
+                    p = self.assumed_emb[1][p.long()]
+                    if o is None:
+                        o = self.assumed_emb[0]
+                    else:
+                        o = self.assumed_emb[0][o.long()]
+                    return self._scorer.score_emb(s, p, o, combine="sp_")
         s = self.get_s_embedder().embed(s)
         p = self.get_p_embedder().embed(p)
         if o is None:
@@ -714,7 +746,27 @@ class KgeModel(KgeBase):
         If `s` is not None, it is a vector holding the indexes of the objects to score.
 
         """
-
+        # Bi-level update get s,p,o assumed data 
+        if hasattr(self,"_base_model"):
+            if hasattr(self._base_model,'W_update'):
+                if self._base_model.W_update == True:
+                    if s is None:
+                        s = self._base_model.assumed_emb[0]
+                    else:
+                        s = self._base_model.assumed_emb[0][s.long()]
+                    p = self._base_model.assumed_emb[1][p.long()]
+                    o = self._base_model.assumed_emb[0][o.long()]
+                    return self._scorer.score_emb(s, p, o, combine="_po")
+        else:
+            if hasattr(self,'W_update'):
+                if self.W_update == True:
+                    if s is None:
+                        s = self.assumed_emb[0]
+                    else:
+                        s = self.assumed_emb[0][s.long()]
+                    p = self.assumed_emb[1][p.long()]
+                    o = self.assumed_emb[0][o.long()]
+                    return self._scorer.score_emb(s, p, o, combine="_po")
         if s is None:
             s = self.get_s_embedder().embed_all()
         else:
@@ -737,6 +789,28 @@ class KgeModel(KgeBase):
         If `p` is not None, it is a vector holding the indexes of the relations to score.
 
         """
+        # Bi-level update get s,p,o assumed data 
+        if hasattr(self,"_base_model"):
+            if hasattr(self._base_model,'W_update'):
+                if self._base_model.W_update == True:
+                    s = self._base_model.assumed_emb[0][s.long()]
+                    if p is None:
+                        p = self._base_model.assumed_emb[1]
+                    else:
+                        p = self._base_model.assumed_emb[1][p.long()]
+                    o = self._base_model.assumed_emb[0][o.long()]
+                    return self._scorer.score_emb(s, p, o, combine="s_o")
+        else:
+            if hasattr(self,'W_update'):
+                if self.W_update == True:
+                    s = self.assumed_emb[0][s.long()]
+                    if p is None:
+                        p = self.assumed_emb[1]
+                    else:
+                        p = self.assumed_emb[1][p.long()]
+                    o = self.assumed_emb[0][o.long()]
+                    return self._scorer.score_emb(s, p, o, combine="s_o")
+
         s = self.get_s_embedder().embed(s)
         o = self.get_o_embedder().embed(o)
         if p is None:

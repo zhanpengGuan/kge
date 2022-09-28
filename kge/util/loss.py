@@ -42,6 +42,8 @@ class KgeLoss:
                 "kl",
                 "soft_margin",
                 "se",
+                "W_margin_ranking",
+                "W_kl"
             ],
         )
         if config.get("train.loss") == "bce":
@@ -84,6 +86,14 @@ class KgeLoss:
             return SoftMarginKgeLoss(config)
         elif config.get("train.loss") == "se":
             return SEKgeLoss(config)
+        elif config.get("train.loss") == "W_margin_ranking":
+            margin = config.get("train.loss_arg")
+            if math.isnan(margin):
+                margin = 1.0
+                config.set("train.loss_arg", margin, log=True)
+            return W_MarginRankingKgeLoss(config, margin=margin)
+        elif config.get("train.loss") == "W_kl":
+            return W_KLDivWithSoftmaxKgeLoss(config)
         else:
             raise ValueError(
                 "invalid value train.loss={}".format(config.get("train.loss"))
@@ -272,3 +282,100 @@ class SEKgeLoss(KgeLoss):
     def __call__(self, scores, labels, **kwargs):
         labels = self._labels_as_matrix(scores, labels)
         return self._loss(scores, labels)
+
+
+class W_MarginRankingKgeLoss(KgeLoss):
+    def __init__(self, config, margin, reduction="none", **kwargs):
+        super().__init__(config)
+        self._device = config.get("job.device")
+        self._train_type = config.get("train.type")
+        self._loss = torch.nn.MarginRankingLoss(
+            margin=margin, reduction=reduction, **kwargs
+        )
+
+    def __call__(self, scores, labels, **kwargs):
+        # scores is (batch_size x num_negatives + 1)
+        labels = self._labels_as_matrix(scores, labels)
+
+        if "negative_sampling" in self._train_type:
+            # Pair each 1 with the following zeros until next 1
+            labels = labels.to(self._device).view(-1)
+            pos_positives = labels.nonzero().view(-1)
+            pos_negatives = (labels == 0).nonzero().view(-1)
+            # repeat each positive score num_negatives times
+            pos_positives = (
+                pos_positives.view(-1, 1).repeat(1, kwargs["num_negatives"]).view(-1)
+            )
+            # weight of indexes
+            model = kwargs["model"]
+            
+            w = model.get_e_w(kwargs["triples"][:,0]).to(self._device)
+            w += model.get_r_w(kwargs["triples"][:,1]).to(self._device)
+            w += model.get_e_w(kwargs["triples"][:,2]).to(self._device)
+            w = ( w.view(-1,1).repeat(1,kwargs["num_negatives"]).view(-1) )
+
+            positives = scores.view(-1)[pos_positives].to(self._device).view(-1)
+            negatives = scores.view(-1)[pos_negatives].to(self._device).view(-1)
+            target = torch.ones(positives.size()).to(self._device)
+            return sum(self._loss(positives, negatives, target)*(w/3))
+class W_KLDivWithSoftmaxKgeLoss(KgeLoss):
+    def __init__(self, config, reduction="none", **kwargs):
+        super().__init__(config)
+        self._device =  config.get("job.device")
+        self._celoss = torch.nn.CrossEntropyLoss(reduction=reduction, **kwargs)
+        self._klloss = torch.nn.KLDivLoss(reduction=reduction, **kwargs)
+
+    def __call__(self, scores, labels, **kwargs):
+        # weight of indexes
+        if hasattr(kwargs["model"],"_base_model"):
+            model = kwargs["model"]._base_model
+        else:
+            model = kwargs["model"]
+        if model.outer == True:
+            if labels.dim() == 1:
+                # Labels are indexes of positive classes, i.e., we are in a multiclass
+                # setting. Then kl divergence can be computed more efficiently using
+                # pytorch's CrossEntropyLoss. (since the entropy of the data distribution is
+                # then 0 so kl divergence equals cross entropy)
+                #
+                # Gives same result as:
+                #   labels = self._labels_as_matrix(scores, labels)
+                # followed by using _klloss as below.
+                return sum(self._celoss(scores, labels))
+            else:
+                # label matrix; use KlDivLoss
+                return sum(sum(self._klloss(
+                    F.log_softmax(scores, dim=1), F.normalize(labels.float(), p=1, dim=1)
+                )))
+        else:
+                
+            w1 = model.get_e_w(kwargs["triples"][:,0]).to(self._device)
+            w2 =w1 + model.get_r_w(kwargs["triples"][:,1]).to(self._device)
+            w3 =w2 + model.get_e_w(kwargs["triples"][:,2]).to(self._device)
+            s = model.e_frq[kwargs["triples"][:,0]].to(self._device)
+            o = model.e_frq[kwargs["triples"][:,2]].to(self._device)
+            x = ((s>1)&(o<1))
+            y = ((s<1)&(o>1))
+            w3[x] = 3
+            w3[y] = 3
+          
+            
+
+
+            if labels.dim() == 1:
+                w = ( w3 )/3.0
+                # Labels are indexes of positive classes, i.e., we are in a multiclass
+                # setting. Then kl divergence can be computed more efficiently using
+                # pytorch's CrossEntropyLoss. (since the entropy of the data distribution is
+                # then 0 so kl divergence equals cross entropy)
+                #
+                # Gives same result as:
+                #   labels = self._labels_as_matrix(scores, labels)
+                # followed by using _klloss as below.
+                return torch.dot(w,self._celoss(scores, labels))
+            else:
+                # label matrix; use KlDivLoss
+                w = ( w3.view(-1,1).repeat(1,kwargs["num_negatives"]+1) )/3.0
+                return sum(sum(self._klloss(
+                    F.log_softmax(scores, dim=1), F.normalize(labels.float(), p=1, dim=1)
+                )*w))

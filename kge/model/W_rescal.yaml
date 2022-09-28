@@ -1,0 +1,16 @@
+import: [lookup_embedder]
+
+W_rescal:
+  class_name: W_Rescal
+  entity_embedder:
+    type: lookup_embedder
+    +++: +++
+  relation_embedder:
+    type: lookup_embedder
+    dim: -1  # determine automatically
+    +++: +++
+  clip: 100
+  init: True
+  require_grad_relation: True
+  require_grad_entity: True 
+  golden_ratio: 0.2

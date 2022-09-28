@@ -1,0 +1,15 @@
+import: [lookup_embedder]
+
+W_distmult:
+  class_name: W_DistMult
+  entity_embedder:
+    type: lookup_embedder
+    +++: +++
+  relation_embedder:
+    type: lookup_embedder
+    +++: +++
+  clip: 100
+  init: True
+  require_grad_relation: True
+  require_grad_entity: True 
+  golden_ratio: 0.2

@@ -1,3 +1,4 @@
+from curses import has_key
 from torch import Tensor
 import torch.nn
 import torch.nn.functional
@@ -122,7 +123,16 @@ class LookupEmbedder(KgeEmbedder):
             if not self.get_option("regularize_args.weighted"):
                 # unweighted Lp regularization
                 parameters = self._embeddings_all()
-                result += [
+                if 'W_update' in kwargs:
+                    #undo 
+                    result += [
+                        (
+                            f"{self.configuration_key}.L{p}_penalty",
+                        (regularize_weight / p * parameters.norm(p=p) ** p).sum(),
+                    )
+                ]
+                else:
+                    result += [
                     (
                         f"{self.configuration_key}.L{p}_penalty",
                         (regularize_weight / p * parameters.norm(p=p) ** p).sum(),

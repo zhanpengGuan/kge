@@ -1,0 +1,18 @@
+import: [lookup_embedder]
+
+
+W_transe:
+  class_name: W_TransE
+  entity_embedder:
+    type: lookup_embedder
+    +++: +++
+  relation_embedder:
+    type: lookup_embedder
+    +++: +++
+  l_norm: 1.
+  clip: 100
+  init: True
+  require_grad_relation: True
+  require_grad_entity: True 
+  golden_ratio: 0.2
+

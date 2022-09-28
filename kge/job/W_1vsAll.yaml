@@ -1,0 +1,3 @@
+# Options for 1vsAll training (train.type=="1vsAll")
+W_1vsAll:
+  class_name: W_TrainingJob1vsAll

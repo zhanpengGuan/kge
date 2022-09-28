@@ -14,3 +14,8 @@ from kge.job.search_grid import GridSearchJob
 from kge.job.search_manual import ManualSearchJob
 from kge.job.search_auto import AutoSearchJob
 from kge.job.search_ax import AxSearchJob
+#gzp job
+from kge.job.train_W_negative_sampling  import W_TrainingJobNegativeSampling
+from kge.job.train_final_W_negative_sampling import final_W_TrainingJobNegativeSampling
+from kge.job.train_W_1vsAll import W_TrainingJob1vsAll
+from kge.job.train_W_KvsAll import W_TrainingJobKvsAll

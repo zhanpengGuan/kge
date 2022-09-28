@@ -18,5 +18,12 @@ from kge.model.rotate import RotatE
 from kge.model.cp import CP
 from kge.model.simple import SimplE
 
+#gzp model
+from kge.model.W_transe import W_TransE
+from kge.model.W_distmult import W_DistMult
+from kge.model.W_rotate import W_RotatE
+from kge.model.W_conve import W_ConvE
+from kge.model.W_rescal import W_Rescal
+from kge.model.W_complex import W_ComplEx
 # meta models
 from kge.model.reciprocal_relations_model import ReciprocalRelationsModel
