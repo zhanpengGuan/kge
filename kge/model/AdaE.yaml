@@ -1,0 +1,12 @@
+import: [multi_lookup_embedder]
+
+AdaE:
+  class_name: AdaE
+  entity_embedder:
+    type: multi_lookup_embedder
+    space: complex
+    +++: +++
+  relation_embedder:
+    type: multi_lookup_embedder
+    space: complex
+    +++: +++

@@ -448,6 +448,31 @@ class KgeModel(KgeBase):
                     self._relation_embedder.init_pretrained(
                         pretrained_relations_model.get_p_embedder()
                     )
+        # AdaE
+        if config.options['AdaE_config']['adae']:
+            self._multi_entity_embedder: KgeEmbedder
+            self._multi_relation_embedder: KgeEmbedder
+            if create_embedders:
+                self._multi_entity_embedder = KgeEmbedder.create(
+                    config,
+                    dataset,
+                    self.configuration_key + ".entity_embedder",
+                    dataset.num_entities(),
+                    init_for_load_only=init_for_load_only,
+                )
+
+                #: Embedder used for relations
+                num_relations = dataset.num_relations()
+                self._multi_relation_embedder = KgeEmbedder.create(
+                    config,
+                    dataset,
+                    self.configuration_key + ".relation_embedder",
+                    num_relations,
+                    init_for_load_only=init_for_load_only,
+                )
+                if not init_for_load_only:
+                    # undo
+                    pass
 
         #: Scorer
         self._scorer: RelationalScorer
@@ -648,14 +673,16 @@ class KgeModel(KgeBase):
                 penalty_result += self.get_o_embedder().penalty(**kwargs)
             return penalty_result
 
-    def get_s_embedder(self) -> KgeEmbedder:
-        return self._entity_embedder
+    def get_s_embedder(self) -> KgeEmbedder:  
+            return self._entity_embedder
+  
 
-    def get_o_embedder(self) -> KgeEmbedder:
-        return self._entity_embedder
+
+    def get_o_embedder(self) -> KgeEmbedder:    
+            return self._entity_embedder
 
     def get_p_embedder(self) -> KgeEmbedder:
-        return self._relation_embedder
+            return self._relation_embedder
 
     def get_scorer(self) -> RelationalScorer:
         return self._scorer
@@ -787,3 +814,4 @@ class KgeModel(KgeBase):
             sp_scores = self._scorer.score_emb(s, p, all_objects, combine="sp_")
             po_scores = self._scorer.score_emb(all_subjects, p, o, combine="_po")
         return torch.cat((sp_scores, po_scores), dim=1)
+

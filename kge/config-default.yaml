@@ -700,3 +700,14 @@ grash_search:
 # add additional configuration options or information to this config.
 user:
   +++: +++
+# AdaE moudle parameters
+AdaE_config:
+  adae: False 
+  bi-level: False
+  # train_mode: ['rank','Auto','fixed']
+  train_mode: 'rank'
+  emb_list: [64,256]
+  s_u: 2
+  ratio: 0.8
+  urolled: False
+  t_s: 512
