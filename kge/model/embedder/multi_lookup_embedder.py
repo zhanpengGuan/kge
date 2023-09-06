@@ -42,13 +42,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
             self.dim = round_to_points(round_embedder_dim_to, self.dim)
 
         # adaE init
-        self.adaE_init()
-
-
-        if not init_for_load_only:
-            # initialize weights
-            self.initialize(self._embeddings.weight.data)
-            self._normalize_embeddings()
+        self.adaE_init(config,dataset,configuration_key,vocab_size,init_for_load_only=init_for_load_only)
+        if self.adae_config['train_mode'] in ['original','fix']:
+            if not init_for_load_only:
+                # initialize weights
+                self.initialize(self._embeddings.weight.data)
+                self._normalize_embeddings()
 
         # TODO handling negative dropout because using it with ax searches for now
         dropout = self.get_option("dropout")
@@ -67,6 +66,13 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 self._embeddings.weight.data = torch.nn.functional.normalize(
                     self._embeddings.weight.data, p=self.normalize_p, dim=-1
                 )
+    def _normalize_embeddings_list(self):
+        if self.normalize_p > 0:
+            with torch.no_grad():
+                for i in range(len(self.dim_list)):
+                    self._embeddings_list[i].weight.data = torch.nn.functional.normalize(
+                        self._embeddings_list.weight.data, p=self.normalize_p, dim=-1
+                    )
 
     def prepare_job(self, job: Job, **kwargs):
         from kge.job import TrainingJob
@@ -168,7 +174,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
                             * (parameters ** p * counts.float().view(-1, 1))
                         ).sum()
                         # In contrast to unweighted Lp regularization, rescaling by
-                        # number of triples/indexes is necessary here so that penalty
+                        # number of indexes/indexes is necessary here so that penalty
                         # term is correct in expectation
                         / len(kwargs["indexes"]),
                     )
@@ -177,9 +183,14 @@ class Multi_LookupEmbedder(KgeEmbedder):
             raise ValueError(f"Invalid value regularize={self.regularize}")
 
         return result
-    def adaE_init(self):
-        
+    def adaE_init(self,config,dataset,configuration_key,vocab_size,init_for_load_only=False):
         self.adae_config = self.config.options['AdaE_config']
+       # dataset
+        # 数字越大频率越高
+        self.rank_e, self.rank_r = dataset.count_entity_frequency(dataset._triples['train'], dataset._num_entities, dataset._num_relations, self.adae_config['choice_list'] )
+       
+        # 初始化multi_embedding
+        self.dim_list = self.config.options['AdaE_config']['dim_list']
         
         if self.adae_config['train_mode'] in ['original','fix']:
             # if train_mode is original or fix, the embeddings must be Embedding class
@@ -189,14 +200,33 @@ class Multi_LookupEmbedder(KgeEmbedder):
             # if train_mode is fix, the embedder must have Transform_layer class
             if self.adae_config['train_mode'] == 'fix':
                 self.Transform_layer = nn.Linear(self.dim, self.dim)
-        else:
+                nn.init.xavier_uniform_(self.Transform_layer.weight.data)
+        elif self.adae_config['train_mode'] in ['rank','auto']:
+            self.t_s = self.adae_config['t_s']*2
+            
+            self.choice_emb = torch.zeros(self.vocab_size, len(self.dim_list)).to(DEVICE)
+            nn.init.uniform_(tensor=self.choice_emb)
+            self.BN = nn.LayerNorm(self.t_s).to(DEVICE)
+            self.AF = nn.Tanh()
+            self.Selection = nn.Sequential(
+                    self.BN,
+                    self.AF,
+                    nn.Dropout(0.2),
+                    )
+            for i in range(0,len(self.dim_list)):
+                self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],self.t_s) for i in range(0,len(self.dim_list))])
+                nn.init.xavier_uniform_(self.Transform_layer_list[i].weight.data)
             self._embeddings = torch.zeros( self.vocab_size, self.dim).to(DEVICE)
-            self.dim_list = self.config.options['AdaE_config']['emb_list']
             self._embeddings_list =nn.ParameterList( [nn.Parameter(torch.zeros(self.vocab_size, i)) for i in self.dim_list])
-
+            if not init_for_load_only:
+                # initialize weights
+                for i in range(len(self.dim_list)):
+                    self.initialize(self._embeddings_list[i])
+                    self._normalize_embeddings_list()
+        else:
+            raise ValueError(f"Invalid value train_mode={self.adae_config['train_mode']}")
        
     def _adaE(self, **kwargs) -> KgeEmbedder:
-      
         kwargs['all'] = kwargs.get('all', False)
         indexes = kwargs.get('indexes', None)
         if self.adae_config['train_mode'] in ['original','fix', 'rank','auto']:
@@ -209,7 +239,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 emb = self.Transform_layer(emb) 
             elif self.adae_config['train_mode'] == 'rank':
                 # rank means use ranked dim with each entity 
-                pro = self.picker_rank(indexes,negs=None)
+                pro = self.picker_rank(indexes)
                 emb = self.aligment_fix(indexes,probability=pro)
             elif self.adae_config['train_mode'] == 'share_rank':
                 pass
@@ -219,28 +249,28 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 pass
         return emb
    
-    def picker_rank(self, triples):
+    def picker_rank(self, indexes):
         """
         using pre frequency as choice of entity embedding size despite r
         """          
-        batch_size=len(triples[:,0])
+        batch_size=len(indexes)
         # 上次的emb，离散选择
-        label_h  =  self.rank_e[triples[:, 0]].unsqueeze(-1)
-        pro = torch.zeros(batch_size,self.dim_list_size).to(DEVICE).scatter_(1, label_h, 1)       
-        
+        label  =  self.rank_e[indexes].unsqueeze(-1)
+        pro = torch.zeros(batch_size,len(self.dim_list)).to(DEVICE).scatter_(1, label, 1)       
         return pro.detach()
-    def aligment_fix(self, triples, negs=None, mode="single" , probability=None,step = 10000):
+
+    def aligment_fix(self, indexes, negs=None, mode="single" , probability=None,step = 10000):
         """
         fixed ,which means no gumbel softmax
         """
         l2_norm = 1
         if mode == "single":
             head_emb = []
-            for i in range(0,self.dim_list_size):     
-                head_emb.append(self.ent_emb_list[i][triples[:, 0]])  # [bs, 1, dim]
+            for i in range(0,len(self.dim_list)):     
+                head_emb.append(self._embeddings_list[i][indexes[:]])  # [bs, 1, dim]
             output_h = []
-            for i in range(0,self.dim_list_size):       
-                output_h_pre = (self.Selection(self.Transform_e_layer_list[i](head_emb[i]))*l2_norm)
+            for i in range(0,len(self.dim_list)):       
+                output_h_pre = (self.Selection(self.Transform_layer_list[i](head_emb[i]))*l2_norm)
                 output_h.append(output_h_pre)
             # 堆叠以便于计算
             head_s = torch.stack(output_h, dim=1)
@@ -250,7 +280,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             head_final = torch.mul(head_s, Gpro_h.unsqueeze(-1)).sum(dim = 1).unsqueeze(1)
             with torch.no_grad():
                 # save fianl emb
-                self.entity_embedding[triples[:, 0]] = head_final.squeeze(1)
+                self._embeddings[indexes[:]] = head_final.squeeze(1)
                 # save pro
-                self.ent_choice_emb[triples[:, 0]] = probability[0]
+                self.choice_emb[indexes[:, 0]] = probability[0]
         return head_final

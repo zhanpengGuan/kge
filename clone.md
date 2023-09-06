@@ -6,14 +6,23 @@
     ```
     这里是通过s（索引）取得embedding的地方，因此直接写一个新的函数
     首先，重写embedder，得到multi-embedder
+    - multi-embedder.py
     然后重写embed_all()和embed(),
     在_adaE()里面写picker+selecter
     补齐所有的参数
       train_mode代表的模块 fix,original写完了
-    
+    23/0906
+    adaE_init()包含了multi_embedding的初始化和dropout
+    ！！ 初始化我用的是parameters，还有库里的initinize,可能有问题
+    写到rank_e了，这里需要对Dataset下手了,最终写了方法count_entity_frequency，在multi_lookup_embedder里调用。
+    [0.2]意味着最高的20%和低频的80%的划分
 
 
-  - picker
+
+  ## picker
+  - AdaE.py
+  这个和embedder分离，写了一个类
+
   - optimizer
   - 双层规划的模块
   ## 解析器argparse
@@ -51,5 +60,10 @@
   - kge_model.py
     score_spo, spo都是大小为[batch]
 # 遇到的bug和解决方案
+  ## 1
   在AdaE这个子类中重写get_s_embedder，要注意此时AdaE没有entity_embedder，只有multi_entity_embedder
   在AdaE的父类Reciprocal_relation_model中，只有entity_embedder，这个来自于base_model:AdaE的_multi_entity_embedder
+  ## 2
+  RoTaTE的初始化沒寫，可能會報錯
+  ## 3
+  必须注意，当出现新的choice_list,模型的count_e_entity的函数里，用于加速的加载已存在的rank_e必须要调整。

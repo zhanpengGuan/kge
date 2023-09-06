@@ -60,7 +60,6 @@ class Dataset(Configurable):
 
         #: meta data that is part if this dataset. Indexed by key.
         self._meta: Dict[str, Any] = {}
-
         #: data derived automatically from the splits or meta data. Indexed by key.
         self._indexes: Dict[str, Any] = {}
 
@@ -72,9 +71,57 @@ class Dataset(Configurable):
 
         #: disable pickling for specific indexes
         self._index_no_pickle = set()
-
+     
     ## LOADING ##########################################################################
+    
+    def count_entity_frequency(self, triples, nentity, nrelation, choice_list, data_path = '../kge/data/fb15k-237/'):
+        '''
+        Get frequency of a entity and relation
+        The frequency will be used for subsampling like word2vec
+        
+        '''
+        if  os.path.isfile(data_path+'rank_e.pt'):
+            rank_e = torch.load(data_path+'rank_e.pt')
+            rank_r = torch.load(data_path+'rank_r.pt')
+        else: 
+            count_e = torch.ones(nentity)
+            count_r = torch.ones(nrelation)
+            for head, relation, tail in triples:
+                    count_e[head] += 1
+                    count_e[tail] += 1
+                    count_r[relation] += 1
+            # 降序count_e，分割0~10%，10%~50%，50%~100%的顺序为2,1，0，数字越大，频率越高
+            freq_rank_e = sorted(count_e,reverse=True)
+            
+            #r_从低到高，e.g. r_=[1,16,237,1023]
+            r_ = []
+            for i in reversed(choice_list):
+                r_.append(freq_rank_e[int(len(count_e)*i)])
+            rank_e = torch.tensor([0 for i in range(nentity)])
+            for i in range(nentity):
+                for j in r_:
+                    if count_e[i] > j:
+                        rank_e[i] += 1  
+            # 降序count_r，分割0~20%，20%~50%，50%~100%的顺序为2,1，0，数字越大，频率越高
+            freq_rank_r = sorted(count_r,reverse=True)
+            
+            r_ = []
+            for i in reversed(choice_list):
+                r_.append(freq_rank_r[int(len(count_r)*i)])
+            
+            rank_r = torch.tensor([0 for i in range(nrelation)])
+            # for i in range(nrelation):
+            #     for j in r_:
+            #         if count_r[i] > j:
+            #             rank_r[i] += 1
+            #对待r，全部为同频
+            for i in range(nrelation):
+                    rank_r[i] = len(choice_list) 
+            
 
+            torch.save(rank_e, data_path+'rank_e.pt')
+            torch.save(rank_r, data_path+'rank_r.pt')
+        return rank_e, rank_r
     def ensure_available(self, key):
         """Checks if key can be loaded"""
         if self.folder is None or not os.path.exists(self.folder):
@@ -123,6 +170,7 @@ class Dataset(Configurable):
             dataset.relation_ids()
             for split in ["train", "valid", "test"]:
                 dataset.split(split)
+        
         return dataset
 
     @staticmethod

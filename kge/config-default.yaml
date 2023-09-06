@@ -706,7 +706,8 @@ AdaE_config:
   bi-level: False
   # train_mode: ['rank','Auto','fixed']
   train_mode: 'rank'
-  emb_list: [64,256]
+  dim_list: [64,256]
+  choice_list: [0.8]
   s_u: 2
   ratio: 0.8
   urolled: False

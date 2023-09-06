@@ -260,7 +260,8 @@ def main():
         else:
             # load data
             dataset = Dataset.create(config)
-
+               # AdaE
+        # self.rank_e, self.rank_r = self.count_entity_frequency(dataset._triples, dataset._num_entities, dataset._num_relations, adae_config['choice_list'] )
             # let's go
             if args.command == "resume":
                 if checkpoint_file is not None:
