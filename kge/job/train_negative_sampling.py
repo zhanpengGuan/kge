@@ -79,6 +79,8 @@ class TrainingJobNegativeSampling(TrainingJob):
             negative_samples = list()
             for slot in [S, P, O]:
                 negative_samples.append(self._sampler.sample(triples, slot))
+            # split data for darts
+            
             return {"triples": triples, "negative_samples": negative_samples}
 
         return collate

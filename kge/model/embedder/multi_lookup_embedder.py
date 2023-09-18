@@ -1,6 +1,7 @@
+import torch
 from torch import Tensor
 import torch.nn as nn
-import torch.nn.functional
+import torch.nn.functional as F
 
 from kge import Config, Dataset
 from kge.job import Job
@@ -8,6 +9,7 @@ from kge.model import KgeEmbedder
 from kge.misc import round_to_points
 
 from typing import List
+
 
 DEVICE = "cpu"
 class Multi_LookupEmbedder(KgeEmbedder):
@@ -18,11 +20,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
         configuration_key: str,
         vocab_size: int,
         init_for_load_only=False,
+        **kwargs
     ):
         super().__init__(
             config, dataset, configuration_key, init_for_load_only=init_for_load_only
         )
-
+        picker  = kwargs.get('picker', None)
         # read config
         self.normalize_p = self.get_option("normalize.p")
         self.space = self.check_option("space", ["euclidean", "complex"])
@@ -42,7 +45,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             self.dim = round_to_points(round_embedder_dim_to, self.dim)
 
         # adaE init
-        self.adaE_init(config,dataset,configuration_key,vocab_size,init_for_load_only=init_for_load_only)
+        self.adaE_init(dataset, picker, init_for_load_only=init_for_load_only)
         if self.adae_config['train_mode'] in ['original','fix']:
             if not init_for_load_only:
                 # initialize weights
@@ -158,7 +161,9 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 unique_indexes, counts = torch.unique(
                     kwargs["indexes"], return_counts=True
                 )
+                
                 parameters = self._embeddings(unique_indexes)
+               
 
                 if self.regularize == "n3" and self.space == 'complex':
                     parameters = self._abs_complex(parameters)
@@ -183,7 +188,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             raise ValueError(f"Invalid value regularize={self.regularize}")
 
         return result
-    def adaE_init(self,config,dataset,configuration_key,vocab_size,init_for_load_only=False):
+    def adaE_init(self, dataset, picker = None,init_for_load_only=False):
         self.adae_config = self.config.options['AdaE_config']
        # dataset
         # 数字越大频率越高
@@ -203,7 +208,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 nn.init.xavier_uniform_(self.Transform_layer.weight.data)
         elif self.adae_config['train_mode'] in ['rank','auto']:
             self.t_s = self.adae_config['t_s']*2
-            
+            self.picker = picker
             self.choice_emb = torch.zeros(self.vocab_size, len(self.dim_list)).to(DEVICE)
             nn.init.uniform_(tensor=self.choice_emb)
             self.BN = nn.LayerNorm(self.t_s).to(DEVICE)
@@ -216,7 +221,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             for i in range(0,len(self.dim_list)):
                 self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],self.t_s) for i in range(0,len(self.dim_list))])
                 nn.init.xavier_uniform_(self.Transform_layer_list[i].weight.data)
-            self._embeddings = torch.zeros( self.vocab_size, self.dim).to(DEVICE)
+            self._embeddings = torch.nn.Embedding(self.vocab_size, self.t_s, sparse=self.sparse)
             self._embeddings_list =nn.ParameterList( [nn.Parameter(torch.zeros(self.vocab_size, i)) for i in self.dim_list])
             if not init_for_load_only:
                 # initialize weights
@@ -239,48 +244,90 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 emb = self.Transform_layer(emb) 
             elif self.adae_config['train_mode'] == 'rank':
                 # rank means use ranked dim with each entity 
-                pro = self.picker_rank(indexes)
-                emb = self.aligment_fix(indexes,probability=pro)
+                pro = self._picker_rank(indexes)
+                emb = self._aligment_fix(indexes,probability=pro)
             elif self.adae_config['train_mode'] == 'share_rank':
                 pass
             elif self.adae_config['train_mode'] == 'share_rank_zp':
                 pass
             elif self.adae_config['train_mode'] == 'auto':
-                pass
+                # rank means use ranked dim with each entity 
+                pro = self._picker(indexes)
+                emb = self._aligment(indexes,probability=pro)
+
         return emb
    
-    def picker_rank(self, indexes):
+    def _picker_rank(self, indexes):
         """
         using pre frequency as choice of entity embedding size despite r
         """          
         batch_size=len(indexes)
         # 上次的emb，离散选择
         label  =  self.rank_e[indexes].unsqueeze(-1)
-        pro = torch.zeros(batch_size,len(self.dim_list)).to(DEVICE).scatter_(1, label, 1)       
+        pro = torch.zeros(batch_size,len(self.dim_list)).to(DEVICE).scatter_(1, label, 1)    
+
+        return pro.detach()
+    
+    def _picker(self, indexes):
+        """
+        picker  
+        """          
+        input_h =  torch.cat((self._embeddings(indexes), 
+            self.bucket(self.rank_e[indexes])),dim = 1)
+        pro = F.softmax(self.Picker(input_h),dim=-1)
+
         return pro.detach()
 
-    def aligment_fix(self, indexes, negs=None, mode="single" , probability=None,step = 10000):
+    def _aligment_fix(self, indexes, probability=None,step = 10000):
         """
         fixed ,which means no gumbel softmax
         """
         l2_norm = 1
-        if mode == "single":
-            head_emb = []
-            for i in range(0,len(self.dim_list)):     
-                head_emb.append(self._embeddings_list[i][indexes[:]])  # [bs, 1, dim]
-            output_h = []
-            for i in range(0,len(self.dim_list)):       
-                output_h_pre = (self.Selection(self.Transform_layer_list[i](head_emb[i]))*l2_norm)
-                output_h.append(output_h_pre)
-            # 堆叠以便于计算
-            head_s = torch.stack(output_h, dim=1)
-            # no Gumbal softmax probability
-            Gpro_h = probability[0]
-            #sot selection   
-            head_final = torch.mul(head_s, Gpro_h.unsqueeze(-1)).sum(dim = 1).unsqueeze(1)
-            with torch.no_grad():
-                # save fianl emb
-                self._embeddings[indexes[:]] = head_final.squeeze(1)
-                # save pro
-                self.choice_emb[indexes[:, 0]] = probability[0]
+    
+        head_emb = []
+        for i in range(0,len(self.dim_list)):     
+            head_emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
+        output_h = []
+        for i in range(0,len(self.dim_list)):       
+            output_h_pre = (self.Selection(self.Transform_layer_list[i](head_emb[i]))*l2_norm)
+            output_h.append(output_h_pre)
+        # 堆叠以便于计算
+        head_s = torch.stack(output_h, dim=1)
+        # no Gumbal softmax probability
+        Gpro_h = probability
+        #soft selection   
+        head_final = torch.mul(head_s, Gpro_h.unsqueeze(-1)).sum(dim = 1)
+        with torch.no_grad():
+            # save fianl emb
+            self._embeddings.weight.data[indexes] = head_final
+            # save pro
+            self.choice_emb[indexes] = probability
+
+        return head_final
+    
+    def _aligment(self, indexes,  probability=None,step = 10000):
+        """
+        align with gumbal softmax
+        """
+        l2_norm = 1
+        Tau=max(0.01,1-5.0e-5*step)
+        head_emb = []
+        for i in range(0,len(self.dim_list)):     
+            head_emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
+        output_h = []
+        for i in range(0,len(self.dim_list)):       
+            output_h_pre = (self.Selection(self.Transform_layer_list[i](head_emb[i]))*l2_norm)
+            output_h.append(output_h_pre)
+        # 堆叠以便于计算
+        head_s = torch.stack(output_h, dim=1)
+        # Gumbal softmax probability
+        Gpro_h = F.gumbel_softmax(probability, tau=Tau, hard=True)
+        #soft selection   
+        head_final = torch.mul(head_s, Gpro_h.unsqueeze(-1)).sum(dim = 1)
+        with torch.no_grad():
+            # save fianl emb
+            self._embeddings.weight.data[indexes] = head_final
+            # save pro
+            self.choice_emb[indexes] = probability
+
         return head_final

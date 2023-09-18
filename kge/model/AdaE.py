@@ -1,7 +1,10 @@
 import torch
 from kge import Config, Dataset
 from kge.model.kge_model import KgeEmbedder, RelationalScorer, KgeModel
-
+# import nn for torch
+import torch.nn as nn
+from kge.util import  KgeOptimizer, KgeLRScheduler
+DEVICE = 'cpu'
 
 class AdaEScorer(RelationalScorer):
     r"""Implementation of the AdaE KGE scorer.
@@ -60,6 +63,7 @@ class AdaE(KgeModel):
             configuration_key=configuration_key,
             init_for_load_only=init_for_load_only,
         )
+        self.picker: Picker = Picker(config, dataset, init_for_load_only=False)
     def get_s_embedder(self) -> KgeEmbedder:
             return self._multi_entity_embedder
     def get_o_embedder(self) -> KgeEmbedder:
@@ -67,48 +71,49 @@ class AdaE(KgeModel):
     def get_p_embedder(self) -> KgeEmbedder:
             return self._multi_relation_embedder
     
-class Picker(AdaE):
+class Picker(nn.Module):
     def __init__( self,
         config: Config,
-        dataset: Dataset,
-        configuration_key=None,
-        init_for_load_only=False,) -> None:
+        dataset: Dataset) -> None:
+        self.adae_config = config.options['AdaE_config']
+        self.dim: int = self.get_option("dim")
+        self.dim_list_size = len(self.adae_config['dim_list'])
+        self.dim_bucket = int(self.adae_config['t_s']/8)
         
-        if args.train_mode in ['auto']:
-            self.dim_bucket = int(self.Transfromed_dim/8)
-            self.FC1 = nn.Linear(self.dim_bucket+self.entity_dim,128).to(DEVICE)
-            self.FC2 = nn.Linear(128,64).to(DEVICE)
-            self.FC3 = nn.Linear(64,self.dim_list_size).to(DEVICE)
-            nn.init.xavier_uniform_(self.FC1.weight.data)
-            nn.init.xavier_uniform_(self.FC2.weight.data)
-            nn.init.xavier_uniform_(self.FC3.weight.data)  
-            self.Controller = nn.Sequential(
-                self.FC1,
-                nn.Dropout(0.5),
-                nn.Tanh(),
-                self.FC2,
-                nn.Dropout(0.5),
-                nn.Tanh(),
-                self.FC3
-            ) 
-            self.FC1_r = nn.Linear(self.dim_bucket+self.relation_dim,128).to(DEVICE)
-            self.FC2_r = nn.Linear(128,64).to(DEVICE)
-            self.FC3_r = nn.Linear(64,self.dim_list_size).to(DEVICE)
-            nn.init.xavier_uniform_(self.FC1_r.weight.data)
-            nn.init.xavier_uniform_(self.FC2_r.weight.data)
-            nn.init.xavier_uniform_(self.FC3_r.weight.data)
-            self.Controller_r = nn.Sequential(
-                self.FC1_r,
-                nn.Dropout(0.5),
-                nn.Tanh(),
-                self.FC2_r,
-                nn.Dropout(0.5),
-                nn.Tanh(),
-                self.FC3_r
-                )
+        self.FC1 = nn.Linear(self.dim_bucket+self.dim,128).to(DEVICE)
+        self.FC2 = nn.Linear(128,64).to(DEVICE)
+        self.FC3 = nn.Linear(64,self.dim_list_size).to(DEVICE)
+        nn.init.xavier_uniform_(self.FC1.weight.data)
+        nn.init.xavier_uniform_(self.FC2.weight.data)
+        nn.init.xavier_uniform_(self.FC3.weight.data)  
+        self.Picker = nn.Sequential(
+            self.FC1,
+            nn.Dropout(0.5),
+            nn.Tanh(),
+            self.FC2,
+            nn.Dropout(0.5),
+            nn.Tanh(),
+            self.FC3
+        ) 
+        self.FC1_r = nn.Linear(self.dim_bucket+self.dim,128).to(DEVICE)
+        self.FC2_r = nn.Linear(128,64).to(DEVICE)
+        self.FC3_r = nn.Linear(64,self.dim_list_size).to(DEVICE)
+        nn.init.xavier_uniform_(self.FC1_r.weight.data)
+        nn.init.xavier_uniform_(self.FC2_r.weight.data)
+        nn.init.xavier_uniform_(self.FC3_r.weight.data)
+        self.Picker_r = nn.Sequential(
+            self.FC1_r,
+            nn.Dropout(0.5),
+            nn.Tanh(),
+            self.FC2_r,
+            nn.Dropout(0.5),
+            nn.Tanh(),
+            self.FC3_r
+            )
 
-            # bucket emb
-            self.k = len(self.emb_dim_list)
-            self.bucket = nn.Embedding(self.k, self.dim_bucket)
-         
+        # bucket emb
+        self.k = len(self.emb_dim_list)
+        self.bucket = nn.Embedding(self.k, self.dim_bucket)
+
+        
 

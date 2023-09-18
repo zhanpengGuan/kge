@@ -261,6 +261,7 @@ class KgeEmbedder(KgeBase):
         configuration_key: str,
         vocab_size: int,
         init_for_load_only=False,
+        **kwargs
     ) -> "KgeEmbedder":
         """Factory method for embedder creation."""
 
@@ -279,6 +280,7 @@ class KgeEmbedder(KgeBase):
                 configuration_key,
                 vocab_size,
                 init_for_load_only=init_for_load_only,
+                **kwargs
             )
             return embedder
         except:
@@ -386,6 +388,7 @@ class KgeModel(KgeBase):
                 self.configuration_key + ".entity_embedder",
                 dataset.num_entities(),
                 init_for_load_only=init_for_load_only,
+                picker = self.picker,
             )
 
             #: Embedder used for relations
@@ -396,6 +399,7 @@ class KgeModel(KgeBase):
                 self.configuration_key + ".relation_embedder",
                 num_relations,
                 init_for_load_only=init_for_load_only,
+                picker = self.picker,
             )
 
             if not init_for_load_only:

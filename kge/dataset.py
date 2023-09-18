@@ -73,7 +73,7 @@ class Dataset(Configurable):
         self._index_no_pickle = set()
      
     ## LOADING ##########################################################################
-    
+    # AdaE
     def count_entity_frequency(self, triples, nentity, nrelation, choice_list, data_path = '../kge/data/fb15k-237/'):
         '''
         Get frequency of a entity and relation
@@ -122,6 +122,7 @@ class Dataset(Configurable):
             torch.save(rank_e, data_path+'rank_e.pt')
             torch.save(rank_r, data_path+'rank_r.pt')
         return rank_e, rank_r
+    
     def ensure_available(self, key):
         """Checks if key can be loaded"""
         if self.folder is None or not os.path.exists(self.folder):

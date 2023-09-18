@@ -712,3 +712,5 @@ AdaE_config:
   ratio: 0.8
   urolled: False
   t_s: 512
+  lr_p: 0.00001
+  device: 'cpu'
