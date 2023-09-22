@@ -56,6 +56,7 @@ class AdaE(KgeModel):
         configuration_key=None,
         init_for_load_only=False,
     ):
+        self.picker: Picker = Picker(config, dataset)
         super().__init__(
             config=config,
             dataset=dataset,
@@ -63,7 +64,7 @@ class AdaE(KgeModel):
             configuration_key=configuration_key,
             init_for_load_only=init_for_load_only,
         )
-        self.picker: Picker = Picker(config, dataset, init_for_load_only=False)
+        
     def get_s_embedder(self) -> KgeEmbedder:
             return self._multi_entity_embedder
     def get_o_embedder(self) -> KgeEmbedder:
@@ -71,12 +72,13 @@ class AdaE(KgeModel):
     def get_p_embedder(self) -> KgeEmbedder:
             return self._multi_relation_embedder
     
-class Picker(nn.Module):
+class Picker:
     def __init__( self,
         config: Config,
         dataset: Dataset) -> None:
+        
         self.adae_config = config.options['AdaE_config']
-        self.dim: int = self.get_option("dim")
+        self.dim: int = config.options['multi_lookup_embedder']['dim']
         self.dim_list_size = len(self.adae_config['dim_list'])
         self.dim_bucket = int(self.adae_config['t_s']/8)
         
@@ -112,7 +114,7 @@ class Picker(nn.Module):
             )
 
         # bucket emb
-        self.k = len(self.emb_dim_list)
+        self.k = self.dim_list_size
         self.bucket = nn.Embedding(self.k, self.dim_bucket)
 
         

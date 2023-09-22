@@ -37,7 +37,10 @@
     架构方面，model包含embedder等参数，job则包含optimizer等以及训练方式
     不需要重写optimizer，只选用用新的optimizer包含picker的参数即可
     2023/09/18
-    正在传递picker,目前的想法是在AdaE里初始化picker，然后再embedder初始化传入picker
+    正在传递picker,目前的想法是在AdaE里初始化picker，然后再embedder初始化传入picker：*此想法不可行，因为不可以再初始化之前先初始化picker这个类，而且传入需要新增参数破坏了源代码这个*
+    2023/09/20
+    
+    
 
     
     
