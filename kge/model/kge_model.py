@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Union, Tuple
 
 from typing import TYPE_CHECKING
 
+
 if TYPE_CHECKING:
     from kge.job import Job
 
@@ -261,7 +262,7 @@ class KgeEmbedder(KgeBase):
         configuration_key: str,
         vocab_size: int,
         init_for_load_only=False,
-        **kwargs
+       
     ) -> "KgeEmbedder":
         """Factory method for embedder creation."""
 
@@ -280,7 +281,7 @@ class KgeEmbedder(KgeBase):
                 configuration_key,
                 vocab_size,
                 init_for_load_only=init_for_load_only,
-                **kwargs
+                
             )
             return embedder
         except:
@@ -388,7 +389,7 @@ class KgeModel(KgeBase):
                 self.configuration_key + ".entity_embedder",
                 dataset.num_entities(),
                 init_for_load_only=init_for_load_only,
-                picker = self.picker,
+               
             )
 
             #: Embedder used for relations
@@ -399,7 +400,7 @@ class KgeModel(KgeBase):
                 self.configuration_key + ".relation_embedder",
                 num_relations,
                 init_for_load_only=init_for_load_only,
-                picker = self.picker,
+               
             )
 
             if not init_for_load_only:
@@ -452,31 +453,30 @@ class KgeModel(KgeBase):
                     self._relation_embedder.init_pretrained(
                         pretrained_relations_model.get_p_embedder()
                     )
-        # AdaE
-        if config.options['AdaE_config']['adae']:
-            self._multi_entity_embedder: KgeEmbedder
-            self._multi_relation_embedder: KgeEmbedder
-            if create_embedders:
-                self._multi_entity_embedder = KgeEmbedder.create(
-                    config,
-                    dataset,
-                    self.configuration_key + ".entity_embedder",
-                    dataset.num_entities(),
-                    init_for_load_only=init_for_load_only,
-                )
+        # # AdaE
+        # if config.options['AdaE_config']['adae']:
+            
+        #     if create_embedders:
+        #         self._multi_entity_embedder = KgeEmbedder.create(
+        #             config,
+        #             dataset,
+        #             self.configuration_key + ".entity_embedder",
+        #             dataset.num_entities(),
+        #             init_for_load_only=init_for_load_only,
+        #         )
 
-                #: Embedder used for relations
-                num_relations = dataset.num_relations()
-                self._multi_relation_embedder = KgeEmbedder.create(
-                    config,
-                    dataset,
-                    self.configuration_key + ".relation_embedder",
-                    num_relations,
-                    init_for_load_only=init_for_load_only,
-                )
-                if not init_for_load_only:
-                    # undo
-                    pass
+        #         #: Embedder used for relations
+        #         num_relations = dataset.num_relations()
+        #         self._multi_relation_embedder = KgeEmbedder.create(
+        #             config,
+        #             dataset,
+        #             self.configuration_key + ".relation_embedder",
+        #             num_relations,
+        #             init_for_load_only=init_for_load_only,
+        #         )
+        #         if not init_for_load_only:
+        #             # undo
+        #             pass
 
         #: Scorer
         self._scorer: RelationalScorer

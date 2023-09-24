@@ -3,7 +3,7 @@ import torch
 import torch.utils.data
 from kge.job import Job
 from kge.job.train import TrainingJob, _generate_worker_init_fn
-from kge.job import TrainingNegativeSamplingJob
+from kge.job.train_negative_sampling import TrainingJobNegativeSampling
 from kge.util import KgeSampler
 from kge.model.transe import TransEScorer
 import itertools
@@ -15,7 +15,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import torch
 import torch.utils.data
-from kge.model.AdaE import Picker
+
 from kge.job import Job, TrainingOrEvaluationJob
 from kge.model import KgeModel, Architect
 from kge.util import KgeLoss, KgeOptimizer, KgeSampler, KgeLRScheduler
@@ -31,7 +31,7 @@ SLOT_STR = ["s", "p", "o"]
 
 
 
-class TrainingJobDarts(TrainingNegativeSamplingJob):
+class TrainingJobDarts(TrainingJobNegativeSampling):
     def __init__(
         self, config, dataset, parent_job=None, model=None, forward_only=False
     ):
@@ -40,15 +40,23 @@ class TrainingJobDarts(TrainingNegativeSamplingJob):
         )
         # need optimizer_c
         self.adae_config = self.config.options['AdaE_config']
-
+        
         
         if not self.is_forward_only:
-            self.picker.train()
-            self.optimizer_c = KgeOptimizer.create(config, self.model._base_model.picker)
-            self.kge_lr_scheduler_c = KgeLRScheduler(config, self.model._base_model.picker)
+            picker_e = self.model._entity_embedder.picker
+            picker_r = self.model._relation_embedder.picker
+            params_p = list(picker_e.bucket.parameters()) + list(picker_e.FC1.parameters())+list(picker_e.FC2.parameters())+list(picker_e.FC3.parameters())+list(picker_r.bucket.parameters()) + list(picker_r.FC1.parameters())+list(picker_r.FC2.parameters())+list(picker_r.FC3.parameters())
+            # picker =  {'e':picker_e,'r':picker_r}
+            # learnable_parameters = [param for name, param in vars(picker).items() if isinstance(param, torch.nn.Parameter) and param.requires_grad]
+
+            self.optimizer_p = torch.optim.Adam(
+                [{'params':params_p}], lr = self.adae_config['lr_p'], betas=(0.9, 0.999)
+                    ) #用来更新theta的optimizer
+            self.kge_lr_scheduler_p = KgeLRScheduler(config, self.optimizer_p)
             self._lr_warmup = self.config.get("train.lr_warmup")
-            for group in self.optimizer_c.param_groups:
+            for group in self.optimizer_p.param_groups:
                 group["initial_lr"]=group["lr"]
+            self.architect = Architect(self.model,self.optimizer_p, self, self.adae_config)
     # overwrite
 
     def _prepare(self):
@@ -103,7 +111,7 @@ class TrainingJobDarts(TrainingNegativeSamplingJob):
             for slot in [S, P, O]:
                 negative_samples.append(self._sampler.sample(triples, slot))
             triples_t, triples_v = None, None
-            negative_samples_t, negative_samples_v = None, None 
+            negative_samples_t, negative_samples_v =  list(),  list() 
             
             ratio = self.adae_config['ratio']
             s_u = self.adae_config['s_u']
@@ -115,7 +123,8 @@ class TrainingJobDarts(TrainingNegativeSamplingJob):
                 negative_samples_t.append(self._sampler.sample(triples_t, slot))
                 negative_samples_v.append(self._sampler.sample(triples_v, slot))
 
-            return {"triples": triples, "negative_samples": negative_samples,  "triples_t": triples_t, "triples_v": triples_v, "negative_samples_t": negative_samples_t, "negative_samples_v": negative_samples_v}
+            # return {"triples": triples, "negative_samples": negative_samples,  "triples_t": triples_t, "triples_v": triples_v, "negative_samples_t": negative_samples_t, "negative_samples_v": negative_samples_v}
+            return [{"triples": triples_t, "negative_samples": negative_samples_t},  {"triples": triples_v, "negative_samples": negative_samples_v}]
 
         return collate
 
@@ -152,7 +161,7 @@ class TrainingJobDarts(TrainingNegativeSamplingJob):
 
         # process each batch
         for batch_index, batch in enumerate(self.loader):
-
+            batch_t, batch_v = batch[0], batch[1]
             # create initial batch trace (yet incomplete)
             self.current_trace["batch"] = {
                 "type": self.type_str,
@@ -181,15 +190,15 @@ class TrainingJobDarts(TrainingNegativeSamplingJob):
                         # try running the batch
                         # architecture的更新
                         if self.adae_config['train_mode'] in ['auto']:   
-                            architect = Architect(self.model,self.optimizer_c, self.adae_config)
+                            
                             #对α进行更新，对应伪代码的第一步，也就是用公式6
-                            if self.adae_config['s_u'] == True:
-                                architect.step(batch, self.adae_config['lr_p'], self.optimizer)
+                            if batch_index % self.adae_config['s_u'] == 0:
+                                self.architect.step(batch_index, batch_t, batch_v, self.adae_config['lr_p'], self.optimizer)
                             
                         if not self.is_forward_only:
                             self.optimizer.zero_grad()
                         batch_result: TrainingJob._ProcessBatchResult = self._process_batch(
-                            batch_index, batch
+                            batch_index, batch_t
                         )
                         done = True
                     except RuntimeError as e:
@@ -230,7 +239,7 @@ class TrainingJobDarts(TrainingNegativeSamplingJob):
                 epoch=self.epoch,
                 batch_index=batch_index,
                 num_batches=len(self.loader),
-                batch=batch,
+                batch=batch_t,
             )
             batch_forward_time += time.time()
 

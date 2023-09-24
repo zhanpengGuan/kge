@@ -11,12 +11,12 @@ def _concat(xs):
 
 class Architect(object):
 
-  def __init__(self, model,optimizer_c, args):
+  def __init__(self, model,optimizer_c, job, args):
     self.network_momentum = 0
     self.args = args
     self.model = model
     self.optimizer = optimizer_c
-
+    self.job = job
     """
     我们更新梯度就是theta = theta + v + weight_decay * theta 
       1.theta就是我们要更新的参数
@@ -29,7 +29,7 @@ class Architect(object):
     #不直接用外面的optimizer来进行w的更新，而是自己新建一个unrolled_model展开，主要是因为我们这里的更新不能对Network的w进行更新
   def _compute_unrolled_model(self, input, target, eta, network_optimizer, mode='single'):
     
-    loss = self.model._loss(input, target,self.args, mode=mode) #Ltrain
+    loss = self.model._base_model._loss(input, target,self.args) #Ltrain
     theta = _concat(self.KGE_parameters(self.model)).data #把参数整理成一行代表一个参数的形式,得到我们要更新的参数theta
     try:
       moment = _concat(network_optimizer.state[v]['momentum_buffer'] for v in self.KGE_parameters(self.model)).mul_(self.network_momentum) #momentum*v,用的就是Network进行w更新的momentum
@@ -43,24 +43,24 @@ class Architect(object):
 
 
 
-  def step(self, batch, eta, network_optimizer, unrolled=True, mode='single'):
+  def step(self, batch_index, batch_t, batch_v, eta, network_optimizer,  unrolled=True, mode='single'):
     
     # input_train, target_train, input_valid, target_valid = positive_sample_train, negative_sample_train, positive_sample_search, negative_sample_search
     #network_opt 指的是w的optmizer
-    input_train, target_train, input_valid, target_valid, = batch["triples_t"], batch["negative_samples_t"], batch['triples_v'], batch["negative_samples_v"]
+    input_train, target_train, input_valid, target_valid, = batch_t["triples"], batch_t["negative_samples"], batch_v['triples'], batch_v["negative_samples"]
     self.optimizer.zero_grad()#清除上一步的残余更新参数值
-    if  not unrolled:#用论文的提出的方法
+    if not unrolled:#用论文的提出的方法
         self._backward_step_unrolled(input_train, target_train, input_valid, target_valid, eta, network_optimizer,mode)
     else: #不用论文提出的bilevel optimization，只是简单的对α求导
         
-        self._backward_step(input_valid, target_valid, mode)
+        self._backward_step(batch_index, batch_v, input_valid, target_valid, mode)
     self.optimizer.step() #应用梯度：根据反向传播得到的梯度进行参数的更新， 这些parameters的梯度是由loss.backward()得到的，optimizer存了这些parameters的指针
                           #因为这个optimizer是针对alpha的优化器，所以他存的都是alpha的参数
     
     return self.optimizer
 
-  def _backward_step(self, input_valid, target_valid, mode):
-    loss = self.model._loss(input_valid, target_valid,self.args, mode)
+  def _backward_step(self, batch_index, batch_v, input_valid, target_valid, mode):
+    loss = self.model._base_model._loss(batch_index, batch_v)
     loss.backward() #反向传播，计算梯度
 
   

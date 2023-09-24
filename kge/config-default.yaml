@@ -714,3 +714,7 @@ AdaE_config:
   t_s: 512
   lr_p: 0.00001
   device: 'cpu'
+# Options for negative sampling training (train.type=="negative_sampling")
+darts:
+  class_name: TrainingJobDarts
+  

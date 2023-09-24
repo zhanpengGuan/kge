@@ -38,7 +38,15 @@
     不需要重写optimizer，只选用用新的optimizer包含picker的参数即可
     2023/09/18
     正在传递picker,目前的想法是在AdaE里初始化picker，然后再embedder初始化传入picker：*此想法不可行，因为不可以再初始化之前先初始化picker这个类，而且传入需要新增参数破坏了源代码这个*
-    2023/09/20
+    2023/09/23
+    现在决定了，piceker应该依附于multi_embedder,因为设计之初，就期望AdaE产出的结果是类似于原来模型的embeddding,并且其输入也是index,输出也是embedding
+    可以跑通了，明天开始进行双层规划的测试
+    2023/09/24
+    上面的想法很好，但是导致optimizer_c需要修改，这可咋办,
+    发现不需要_entity_embedder
+    2023/09/25
+    要写penalty这里的loss在architetrue中,并且要在AdaE里写一个process)subbatch一样的_loss出来。
+    不能直接用job的process,因为你需要使用传入archt的model，而不是一个不知道哪里来的job中的model
     
     
 
@@ -60,14 +68,21 @@
   - 写新模型和模型对应的yaml（此处不仅要改class name,还要改最前面的那个类名字）
   - init里面import他们 
   - test_config.yaml里面需要import它们
+  在trainjob中，首先在config-default.yaml中是通过train.type=negative_sampling，找到对应的类
+  negative_sampling:
+    class_name: TrainingJobNegativeSampling
+  因此双层规划的训练方式TrainDarts则通过该方法加入到config-default.yaml中
+
 
 
   - save模块
-  - Dataset/训练集的数据分割
+  ## Dataset/训练集的数据分割
+  完成了negative_sample里的get_collate函数，处理它
   - 测试模块
   - KgeSampler采样任务
 
-  - device需要设计
+  ## device需要设计
+  原代码使用的方法是.to(self.device),此处的self.device指的是（job.device）
 # logic architectrue
   - job
     - Training job
@@ -101,3 +116,9 @@
   batch在划分的时候，选取的shape是tripels的，可能会在其他模式里出现问题，在negsample没问题
   ## multi_embedder.py
   有一步没写，就是emb_all()
+  # 可以优化内存
+  把四个embedder中用于存储临时变量的，其中的picker删除掉
+  # kvsall是如何与negative_sampling同时初始化的，这一点可以实现darts继承多个类
+  # 目前sub_batch和batch一样大，不会出错，但是如果变了，train_darts里architectrue的loss计算要修正
+  # 特别隐藏的问题，archt更新的时候用的是batch的全部，而非只有batch,因此一轮中batch_t会被使用两次，第一次是archt,第二次是model
+  # train_darts中archi的实例化在init中，而且在not forward_only中，因此在test会出错 
