@@ -48,7 +48,8 @@
     要写penalty这里的loss在architetrue中,并且要在AdaE里写一个process)subbatch一样的_loss出来。
     不能直接用job的process,因为你需要使用传入archt的model，而不是一个不知道哪里来的job中的model
     
-    
+    rank_e写的有bug，不同的embedder需要不同的embedder
+    倒数模型中输入的p index超过了num_r，因为加了num_r
 
     
     

@@ -718,3 +718,34 @@ AdaE_config:
 darts:
   class_name: TrainingJobDarts
   
+  sampling_type: uniform
+
+  frequency:
+  
+    smoothing: 1
+
+  num_samples:
+    s: 3
+    p: 0          # -1 means: same as s
+    o: -1         # -1 means: same as s
+
+  filtering:
+    s: False       # filter and resample for slot s
+    p: False       # as above
+    o: False       # as above
+
+    split: ''      # split containing the positives; default is train.split
+
+    implementation: fast_if_available
+
+  
+  shared: False
+
+  
+  shared_type: 'default'
+
+  with_replacement: True
+
+  implementation: auto
+
+  

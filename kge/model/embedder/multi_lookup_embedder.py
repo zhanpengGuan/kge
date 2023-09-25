@@ -29,7 +29,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         # read config
         self.normalize_p = self.get_option("normalize.p")
         self.space = self.check_option("space", ["euclidean", "complex"])
-
+        self.configuration_key = configuration_key
         # n3 is only accepted when space is complex
         if self.space == "complex":
             self.regularize = self.check_option("regularize", ["", "lp", "n3"])
@@ -189,8 +189,14 @@ class Multi_LookupEmbedder(KgeEmbedder):
         self.device = self.config.get("job.device")
         # dataset
         # 数字越大频率越高
+        
         self.rank_e, self.rank_r = dataset.count_entity_frequency(dataset._triples['train'], dataset._num_entities, dataset._num_relations, self.adae_config['choice_list'] )
         self.rank_e, self.rank_r = self.rank_e.to(self.device), self.rank_r.to(self.device)
+
+        if self.configuration_key.split('.')[-1]=="entity_embedder":
+            self.rank = self.rank_e
+        else:
+            self.rank = self.rank_r
         self.dim_list = self.config.options['AdaE_config']['dim_list']
         # if train_mode is original or fix, the embeddings must be Embedding class
         self._embeddings = torch.nn.Embedding(
@@ -264,7 +270,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         """          
         batch_size=len(indexes)
         # 上次的emb，离散选择
-        label  =  self.rank_e[indexes].unsqueeze(-1)
+        label  =  self[indexes].unsqueeze(-1)
         pro = torch.zeros(batch_size,len(self.dim_list)).to(DEVICE).scatter_(1, label, 1)    
 
         return pro.detach()
@@ -273,7 +279,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         """
         picker  process
         """          
-        input_h =  torch.cat((self._embeddings(indexes), self.picker.bucket(self.rank_e[indexes])),dim = 1)
+        input_h =  torch.cat((self._embeddings(indexes), self.picker.bucket(self.rank[indexes])),dim = 1)
         pro = F.softmax(self.picker.forward(input_h),dim=-1)
 
         return pro.detach()

@@ -60,7 +60,7 @@ train:
   max_epochs: 400
   optimizer_args:
     lr: 0.18255429345236635
-  type: darts
+  type: negative_sampling
 valid:
   early_stopping:
     min_threshold:

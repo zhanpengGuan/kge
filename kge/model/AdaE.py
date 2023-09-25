@@ -180,7 +180,7 @@ class AdaE(KgeModel):
         if direction == "o":
             return super().score_spo(s, p, o, "o")
         elif direction == "s":
-            return super().score_spo(o, p + self.dataset.num_relations(), s, "o")
+            return super().score_spo(o, p + self.dataset.num_relations()/2, s, "o")
         else:
             raise Exception(
                 "The reciprocal relations model cannot compute "
