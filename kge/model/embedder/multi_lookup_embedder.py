@@ -273,16 +273,16 @@ class Multi_LookupEmbedder(KgeEmbedder):
         label  =  self[indexes].unsqueeze(-1)
         pro = torch.zeros(batch_size,len(self.dim_list)).to(DEVICE).scatter_(1, label, 1)    
 
-        return pro.detach()
+        return pro
     
     def _picker(self, indexes):
         """
         picker  process
         """          
         input_h =  torch.cat((self._embeddings(indexes), self.picker.bucket(self.rank[indexes])),dim = 1)
-        pro = F.softmax(self.picker.forward(input_h),dim=-1)
+        pro = F.softmax(self.picker(input_h),dim=-1)
 
-        return pro.detach()
+        return pro
 
     def _aligment_fix(self, indexes, probability=None,step = 10000):
         """
@@ -338,10 +338,10 @@ class Multi_LookupEmbedder(KgeEmbedder):
 
         return head_final
 
-class Picker:
+class Picker(nn.Module):
     def __init__( self, config: Config, dataset: Dataset) -> None:
         # # father init
-        # super(Picker, self).__init__()
+        super(Picker, self).__init__()
         self.adae_config = config.options['AdaE_config']
         self.device = config.get("job.device")
         self.dim: int = config.options['multi_lookup_embedder']['dim']
@@ -363,22 +363,7 @@ class Picker:
             nn.Tanh(),
             self.FC3
         ) 
-        # self.FC1_r = nn.Linear(self.dim_bucket+self.dim,128).to(DEVICE)
-        # self.FC2_r = nn.Linear(128,64).to(DEVICE)
-        # self.FC3_r = nn.Linear(64,self.dim_list_size).to(DEVICE)
-        # nn.init.xavier_uniform_(self.FC1_r.weight.data)
-        # nn.init.xavier_uniform_(self.FC2_r.weight.data)
-        # nn.init.xavier_uniform_(self.FC3_r.weight.data)
-        # self.Picker_r = nn.Sequential(
-        #     self.FC1_r,
-        #     nn.Dropout(0.5),
-        #     nn.Tanh(),
-        #     self.FC2_r,
-        #     nn.Dropout(0.5),
-        #     nn.Tanh(),
-        #     self.FC3_r
-        #     )
-
+    
         # bucket emb
         self.k = self.dim_list_size
         self.bucket = nn.Embedding(self.k, self.dim_bucket).to(self.device)

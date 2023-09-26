@@ -1,9 +1,9 @@
 
 import:
-- reciprocal_relations_model
 - AdaE
+- complex
 - multi_lookup_embedder
-AdaE:
+complex:
   entity_embedder:
     type: multi_lookup_embedder
     dropout: 0.5
@@ -36,7 +36,7 @@ multi_lookup_embedder:
   regularize_args:
     p: 3
     weighted: true
-model: reciprocal_relations_model
+model: AdaE
 
 negative_sampling:
   implementation: batch
@@ -44,9 +44,10 @@ negative_sampling:
     o: 1000
     p: -1
     s: 529
-reciprocal_relations_model:
+
+AdaE:
   base_model:
-    type: AdaE
+    type: complex
 train:
   auto_correct: true
   batch_size: 1024
@@ -60,13 +61,14 @@ train:
   max_epochs: 400
   optimizer_args:
     lr: 0.18255429345236635
-  type: negative_sampling
+  type: darts
 valid:
   early_stopping:
     min_threshold:
       epochs: 50
       metric_value: 0.05
     patience: 10
+  every: 1
 job.device:
   cuda:0
 AdaE_config:

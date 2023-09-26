@@ -45,11 +45,16 @@
     上面的想法很好，但是导致optimizer_c需要修改，这可咋办,
     发现不需要_entity_embedder
     2023/09/25
-    要写penalty这里的loss在architetrue中,并且要在AdaE里写一个process)subbatch一样的_loss出来。
+    要写penalty这里的loss在architetrue中,并且要在AdaE里写一个process_subbatch一样的_loss出来。
     不能直接用job的process,因为你需要使用传入archt的model，而不是一个不知道哪里来的job中的model
     
     rank_e写的有bug，不同的embedder需要不同的embedder
-    倒数模型中输入的p index超过了num_r，因为加了num_r
+    倒数模型中输入的p index超过了num_r，因为加了num_r,今天发现是base_model中的dataset被relation*2了，重写relation_reciprocal_model，完美解决。
+
+    optimizer的解决方式是重写一个就ok了。否则architr里在求解picker——params的grad会全部为None，因为无法捕获到params参数
+    跑通了
+    2023/0925
+    
 
     
     

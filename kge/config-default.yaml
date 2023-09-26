@@ -714,38 +714,40 @@ AdaE_config:
   t_s: 512
   lr_p: 0.00001
   device: 'cpu'
+
+  
 # Options for negative sampling training (train.type=="negative_sampling")
 darts:
   class_name: TrainingJobDarts
   
-  sampling_type: uniform
+#   sampling_type: uniform
 
-  frequency:
+#   frequency:
   
-    smoothing: 1
+#     smoothing: 1
 
-  num_samples:
-    s: 3
-    p: 0          # -1 means: same as s
-    o: -1         # -1 means: same as s
+#   num_samples:
+#     s: 3
+#     p: 0          # -1 means: same as s
+#     o: -1         # -1 means: same as s
 
-  filtering:
-    s: False       # filter and resample for slot s
-    p: False       # as above
-    o: False       # as above
+#   filtering:
+#     s: False       # filter and resample for slot s
+#     p: False       # as above
+#     o: False       # as above
 
-    split: ''      # split containing the positives; default is train.split
+#     split: ''      # split containing the positives; default is train.split
 
-    implementation: fast_if_available
-
-  
-  shared: False
+#     implementation: fast_if_available
 
   
-  shared_type: 'default'
+#   shared: False
 
-  with_replacement: True
+  
+#   shared_type: 'default'
 
-  implementation: auto
+#   with_replacement: True
+
+#   implementation: auto
 
   

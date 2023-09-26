@@ -46,17 +46,34 @@ class TrainingJobDarts(TrainingJobNegativeSampling):
             picker_e = self.model._entity_embedder.picker
             picker_r = self.model._relation_embedder.picker
             params_p = list(picker_e.bucket.parameters()) + list(picker_e.FC1.parameters())+list(picker_e.FC2.parameters())+list(picker_e.FC3.parameters())+list(picker_r.bucket.parameters()) + list(picker_r.FC1.parameters())+list(picker_r.FC2.parameters())+list(picker_r.FC3.parameters())
+            params_p_id = list(map( id,picker_e.bucket.parameters())) + list(map( id,picker_e.FC1.parameters()))+list(map( id,picker_e.FC2.parameters()))+list(map( id,picker_e.FC3.parameters()))+list(map( id,picker_r.bucket.parameters())) + list(map( id,picker_r.FC1.parameters()))+list(map( id,picker_r.FC2.parameters()))+list(map( id,picker_r.FC3.parameters()))
+
             # picker =  {'e':picker_e,'r':picker_r}
             # learnable_parameters = [param for name, param in vars(picker).items() if isinstance(param, torch.nn.Parameter) and param.requires_grad]
+            embeddings_params_e = list( map( id, self.model._base_model._entity_embedder._embeddings.parameters() ) )
+            embeddings_params_r = list( map( id, self.model._base_model._relation_embedder._embeddings.parameters() ) )
 
-            self.optimizer_p = torch.optim.Adam(
-                [{'params':params_p}], lr = self.adae_config['lr_p'], betas=(0.9, 0.999)
+            base_params = filter(lambda p: id(p) not in embeddings_params_r+embeddings_params_e+params_p_id, self.model.parameters())
+
+
+            opt = getattr(torch.optim, config.get("train.optimizer.default.type"))
+            self.optimizer = opt(
+                [{'params':base_params}], **config.get("train.optimizer.default.args") ) #用来更新theta的optimizer
+            self.kge_lr_scheduler_p = KgeLRScheduler(config, self.optimizer)
+            self._lr_warmup = self.config.get("train.lr_warmup")
+            for group in self.optimizer.param_groups:
+                group["initial_lr"]=group["lr"]
+
+            
+            self.optimizer_p = opt(
+                [{'params':params_p,'name':'default'}],  **config.get("train.optimizer.default.args")
                     ) #用来更新theta的optimizer
             self.kge_lr_scheduler_p = KgeLRScheduler(config, self.optimizer_p)
             self._lr_warmup = self.config.get("train.lr_warmup")
             for group in self.optimizer_p.param_groups:
                 group["initial_lr"]=group["lr"]
-            self.architect = Architect(self.model,self.optimizer_p, self, self.adae_config)
+
+            self.architect = Architect(self.model, params_p, self.optimizer_p, self, self.adae_config)
     # overwrite
 
     def _prepare(self):

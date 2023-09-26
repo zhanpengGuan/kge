@@ -4,8 +4,8 @@ from kge import Config, Dataset
 from kge.model.kge_model import KgeEmbedder, RelationalScorer, KgeModel
 # import nn for torch
 import torch.nn as nn
-
-from kge.util import  KgeOptimizer, KgeLRScheduler
+from kge.model.reciprocal_relations_model import ReciprocalRelationsModel
+from kge.util import  KgeLoss, KgeLRScheduler
 DEVICE = 'cpu'
 import torch.nn.functional as F
 from kge.util import KgeSampler
@@ -13,47 +13,7 @@ SLOTS = [0, 1, 2]
 S, P, O = SLOTS
 SLOT_STR = ["s", "p", "o"]
 
-class AdaEScorer(RelationalScorer):
-    r"""Implementation of the AdaE KGE scorer.
-
-    Reference: Théo Trouillon, Johannes Welbl, Sebastian Riedel, Éric Gaussier and
-    Guillaume Bouchard: AdaE Embeddings for Simple Link Prediction. ICML 2016.
-    `<http://proceedings.mlr.press/v48/trouillon16.pdf>`_
-
-    """
-
-    def __init__(self, config: Config, dataset: Dataset, configuration_key=None):
-        super().__init__(config, dataset, configuration_key)
-
-    def score_emb(self, s_emb, p_emb, o_emb, combine: str):
-        n = p_emb.size(0)
-
-        # Here we use a fast implementation of computing the AdaE scores using
-        # Hadamard products, as in Eq. (11) of paper.
-        #
-        # Split the relation and object embeddings into real part (first half) and
-        # imaginary part (second half).
-        p_emb_re, p_emb_im = (t.contiguous() for t in p_emb.chunk(2, dim=1))
-        o_emb_re, o_emb_im = (t.contiguous() for t in o_emb.chunk(2, dim=1))
-
-        # combine them again to create a column block for each required combination
-        s_all = torch.cat((s_emb, s_emb), dim=1)  # re, im, re, im
-        r_all = torch.cat((p_emb_re, p_emb, -p_emb_im), dim=1)  # re, re, im, -im
-        o_all = torch.cat((o_emb, o_emb_im, o_emb_re), dim=1)  # re, im, im, re
-
-        if combine == "spo":
-            out = (s_all * o_all * r_all).sum(dim=1)
-        elif combine == "sp_":
-            out = (s_all * r_all).mm(o_all.transpose(0, 1))
-        elif combine == "_po":
-            out = (r_all * o_all).mm(s_all.transpose(0, 1))
-        else:
-            return super().score_emb(s_emb, p_emb, o_emb, combine)
-
-        return out.view(n, -1)
-
-
-class AdaE(KgeModel):
+class AdaE(ReciprocalRelationsModel):
     r"""Implementation of the AdaE KGE model."""
 
     def __init__(
@@ -64,16 +24,13 @@ class AdaE(KgeModel):
         init_for_load_only=False,
     ):
         
-        super().__init__(
-            config=config,
-            dataset=dataset,
-            scorer=AdaEScorer,
-            configuration_key=configuration_key,
-            init_for_load_only=init_for_load_only,
+        super().__init__(config, dataset, configuration_key=None, init_for_load_only=False,
         )
         self.device = self.config.get("job.device")
         self._sampler = KgeSampler.create(config, "negative_sampling", dataset)
         self._max_subbatch_size: int = config.get("train.subbatch_size")
+        self.loss = KgeLoss.create(config)
+        self.is_forward_only = init_for_load_only
     # def get_s_embedder(self) -> KgeEmbedder:
     #         return self._multi_entity_embedder
     # def get_o_embedder(self) -> KgeEmbedder:
@@ -165,17 +122,16 @@ class AdaE(KgeModel):
 
             # compute loss for slot in subbatch (concluding the forward pass)
             result.forward_time -= time.time()
-            loss_value_torch = (
-                self.loss(scores, labels[slot], num_negatives=num_samples) / batch_size
-            )
-            result.avg_loss += loss_value_torch.item()
+            loss_value_torch = self.loss(scores, labels[slot], num_negatives=num_samples) / batch_size
+            
+            result.avg_loss += loss_value_torch
             result.forward_time += time.time()
 
-            # backward pass for this slot in the subbatch
-            result.backward_time -= time.time()
-            if not self.is_forward_only:
-                loss_value_torch.backward()
-            result.backward_time += time.time()
+            # # backward pass for this slot in the subbatch
+            # result.backward_time -= time.time()
+            # if not self.is_forward_only:
+            #     loss_value_torch.backward()
+            # result.backward_time += time.time()
     def score_spo(self, s, p, o, direction=None):
         if direction == "o":
             return super().score_spo(s, p, o, "o")
