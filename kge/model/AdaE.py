@@ -9,6 +9,7 @@ from kge.util import  KgeLoss, KgeLRScheduler
 DEVICE = 'cpu'
 import torch.nn.functional as F
 from kge.util import KgeSampler
+from torch import Tensor
 SLOTS = [0, 1, 2]
 S, P, O = SLOTS
 SLOT_STR = ["s", "p", "o"]
@@ -24,8 +25,7 @@ class AdaE(ReciprocalRelationsModel):
         init_for_load_only=False,
     ):
         
-        super().__init__(config, dataset, configuration_key=None, init_for_load_only=False,
-        )
+        super().__init__(config, dataset, configuration_key, init_for_load_only)
         self.device = self.config.get("job.device")
         self._sampler = KgeSampler.create(config, "negative_sampling", dataset)
         self._max_subbatch_size: int = config.get("train.subbatch_size")
@@ -132,11 +132,11 @@ class AdaE(ReciprocalRelationsModel):
             # if not self.is_forward_only:
             #     loss_value_torch.backward()
             # result.backward_time += time.time()
-    def score_spo(self, s, p, o, direction=None):
+    def score_spo(self, s: Tensor, p: Tensor, o: Tensor, direction=None) -> Tensor:
         if direction == "o":
             return super().score_spo(s, p, o, "o")
         elif direction == "s":
-            return super().score_spo(o, p + self.dataset.num_relations()/2, s, "o")
+            return super().score_spo(o, p + self.dataset.num_relations(), s, "o")
         else:
             raise Exception(
                 "The reciprocal relations model cannot compute "

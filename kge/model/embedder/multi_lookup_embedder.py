@@ -99,8 +99,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
         )
 
     def embed(self, indexes: Tensor) -> Tensor:
-        return self._postprocess(self._adaE(indexes = indexes.long()))
-
+        return self._postprocess(self._adaE(indexes = indexes.long(), training = self.training))
+        # return self._postprocess(self._embeddings(indexes.long()))
     def embed_all(self) -> Tensor:
         # undo
         return self._postprocess(self._embeddings_all())
@@ -241,11 +241,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
     def _adaE(self, **kwargs) -> KgeEmbedder:
         kwargs['all'] = kwargs.get('all', False)
         indexes = kwargs.get('indexes', None)
+        if_training = kwargs.get('training', True)
         if self.adae_config['train_mode'] in ['original','fix', 'rank','auto']:
-            if self.adae_config['train_mode'] == 'original':
+            if self.adae_config['train_mode'] == 'original' or not if_training:
                 # original means no change
                 emb = self._embeddings(indexes)
-            if self.adae_config['train_mode'] == 'fix':
+            elif self.adae_config['train_mode'] == 'fix':
                 # fix means all dim is same
                 emb = self._embeddings(indexes)
                 emb = self.Transform_layer(emb) 

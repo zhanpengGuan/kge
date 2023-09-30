@@ -140,7 +140,7 @@ def create_parser(config, additional_args=[]):
 
 def main():
     # default config
-    config = Config()
+    config = Config() 
 
     # now parse the arguments
     parser = create_parser(config)
@@ -226,14 +226,20 @@ def main():
                 config._import(value)
 
     # initialize output folder
+    
+    
     if args.command == "start":
+        # set output folder last str
+        last_str = config.get("AdaE_config.train_mode")
+        if last_str not in  ["original", "fix"]:
+            last_str+="-"+ str(config.get("AdaE_config.dim_list"))
         if args.folder is None:  # means: set default
             config_name = os.path.splitext(os.path.basename(args.config))[0]
             config.folder = os.path.join(
                 kge_base_dir(),
                 "local",
                 "experiments",
-                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name,
+                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + "-"+ last_str
             )
         else:
             config.folder = args.folder

@@ -1,4 +1,5 @@
 import: [multi_lookup_embedder]
+import: [conve]
 
 AdaE:
   class_name: AdaE

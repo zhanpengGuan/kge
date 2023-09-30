@@ -1,15 +1,8 @@
-
-import:
-- AdaE
-- complex
-- multi_lookup_embedder
 complex:
   entity_embedder:
-    type: multi_lookup_embedder
     dropout: 0.5
     regularize_weight: 1.3408200403806817e-08
   relation_embedder:
-    type: multi_lookup_embedder
     dropout: 0.22684140529516872
     regularize_weight: 8.266519211068944e-14
 dataset:
@@ -19,8 +12,10 @@ eval:
   metrics_per:
     relation_type: true
   trace_level: example
-
-multi_lookup_embedder:
+import:
+- reciprocal_relations_model
+- complex
+lookup_embedder:
   dim: 256
   initialize: uniform_
   initialize_args:
@@ -36,16 +31,14 @@ multi_lookup_embedder:
   regularize_args:
     p: 3
     weighted: true
-model: AdaE
-
+model: reciprocal_relations_model
 negative_sampling:
   implementation: batch
   num_samples:
     o: 1000
     p: -1
     s: 529
-
-AdaE:
+reciprocal_relations_model:
   base_model:
     type: complex
 train:
@@ -61,27 +54,10 @@ train:
   max_epochs: 400
   optimizer_args:
     lr: 0.18255429345236635
-  type: darts
+  type: negative_sampling
 valid:
   early_stopping:
     min_threshold:
       epochs: 50
       metric_value: 0.05
     patience: 10
-  every: 5
-job.device:
-  cuda:0
-AdaE_config:
-  adae: True
-  bi-level: False
-  # train_mode: ['rank','auto','fix','original']
-  train_mode: 'auto'
-  dim_list: [64,256]
-  choice_list: [0.2]
-  s_u: 2
-  ratio: 0.8
-  urolled: False
-  t_s: 512
-  lr_p: 0.1825
-  device: 'cuda:0'
-  #目前device没用

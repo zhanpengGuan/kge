@@ -53,7 +53,15 @@
 
     optimizer的解决方式是重写一个就ok了。否则architr里在求解picker——params的grad会全部为None，因为无法捕获到params参数
     跑通了
-    2023/0925
+    2023/0928
+    服务器跳板机坏了，画了一点点图
+    2023/0929
+    eval代码重写，发现是adaE()的问题，只要通过if_training判断是否eval，采用original的方式就不会报错。
+    查看一下明天的结果，其中最后跑的adae是negative_sampling+original的，最好能与complex持平.
+    2023/0930
+    不行，发现是AdaE的问题，应该是继承的时候父类初始化函数写错了，检查一下所有新写的集成的类,并且有一处移植spo函数出错了。
+    original可以达到以前的 要求了
+
     
 
     
@@ -81,7 +89,8 @@
 
 
 
-  - save模块
+  ## save模块
+  需要吧保存的文件名字后面加上一些变体的名字。
   ## Dataset/训练集的数据分割
   完成了negative_sample里的get_collate函数，处理它
   - 测试模块
