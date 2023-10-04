@@ -40,25 +40,30 @@ class Architect(object):
 
     dtheta = _concat(torch.autograd.grad(loss.avg_loss, self.KGE_parameters(self.model), allow_unused=True)).data  #前面的是loss对参数theta/w求梯度，self.network_weight_decay*theta就是正则项
     #对参数进行更新，等价于optimizer.step()
-    unrolled_model = self._construct_model_from_theta(theta.sub(eta, moment+dtheta))  #w − ξ*dwLtrain(w, α) 
+    unrolled_model = self._construct_model_from_theta(theta.sub(eta, moment+dtheta))  
+    #w − ξ*dwLtrain(w, α) 
                                                                                       
     return unrolled_model
 
 
 
   def step(self, batch_index, batch_t, batch_v, eta, network_optimizer,  unrolled=True, mode='single'):
+    self.model._entity_embedder.is_bilevel = True
+    self.model._relation_embedder.is_bilevel = True
     
     # input_train, target_train, input_valid, target_valid = positive_sample_train, negative_sample_train, positive_sample_search, negative_sample_search
     #network_opt 指的是w的optmizer
 
     self.optimizer.zero_grad()#清除上一步的残余更新参数值
-    if unrolled:#用论文的提出的方法
+    if  unrolled:#用论文的提出的方法
         self._backward_step_unrolled(batch_index, batch_t, batch_v, eta, network_optimizer,mode)
     else: #不用论文提出的bilevel optimization，只是简单的对α求导
         self._backward_step(batch_index, batch_v)
+    
     self.optimizer.step() #应用梯度：根据反向传播得到的梯度进行参数的更新， 这些parameters的梯度是由loss.backward()得到的，optimizer存了这些parameters的指针
                           #因为这个optimizer是针对alpha的优化器，所以他存的都是alpha的参数
-    
+    self.model._entity_embedder.is_bilevel = False
+    self.model._relation_embedder.is_bilevel = False
     return self.optimizer
 
   def _backward_step(self, batch_index, batch_v):
@@ -82,7 +87,8 @@ class Architect(object):
     # dαLval(w',α)
     dalpha = [v.grad for v in self.arch_parameters(unrolled_model)] #对alpha求梯度
     # dw'Lval(w',α)
-    vector = [v.grad.data for v in self.KGE_parameters(unrolled_model)] #unrolled_model.parameters()得到w‘
+    vector = [v.grad.data for v in self.KGE_parameters(unrolled_model)] #unrolled_model.parameters()
+    #共16个参数，entity_embedder8个，relation八个，得到w‘
     #计算公式八(dαLtrain(w+,α)-dαLtrain(w-,α))/(2*epsilon)   其中w+=w+dw'Lval(w',α)*epsilon w- = w-dw'Lval(w',α)*epsilon
     implicit_grads = self._hessian_vector_product(vector, batch_index, batch_t)
 
@@ -147,12 +153,12 @@ class Architect(object):
     a parameter filter for KGE parmeters
     '''
     for name, param in model.named_parameters(recurse=recurse):
-      if  not (name.startswith('_base_model._entity_embedder._embeddings') or name.startswith('_base_model._relation_embedder._embeddings') or name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
+      if  not (name.startswith('_base_model._entity_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
         yield param
   def nKGE_parameters(self,model,recurse: bool = True):
     '''
     a named parameter filter for KGE parmeters
     '''
     for name, param in model.named_parameters(recurse=recurse):
-      if  not (name.startswith('_base_model._entity_embedder._embeddings') or name.startswith('_base_model._relation_embedder._embeddings') or name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
+      if  not (name.startswith('_base_model._entity_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
         yield name, param

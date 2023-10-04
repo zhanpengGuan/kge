@@ -713,6 +713,7 @@ AdaE_config:
   urolled: False
   t_s: 512
   lr_p: 0.00001
+  lr_trans: 0.00001
   device: 'cpu'
 
   

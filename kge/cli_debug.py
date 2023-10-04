@@ -141,11 +141,20 @@ def create_parser(config, additional_args=[]):
 def main():
     # default config
     config = Config() 
-
+    
+    args1 = sys.argv[1:]
+   
+    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_auto.yaml"
+    lr_trans = args1[1] if len(args1)>1 else 0.18
+    device = args1[2] if len(args1)>2 else "cuda:0"
+ 
+    
+    
     # now parse the arguments
     parser = create_parser(config)
-    args, unknown_args = parser.parse_known_args("start   models/AdaE.yaml".split())
-
+    args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
+    
+    
     # If there where unknown args, add them to the parser and reparse. The correctness
     # of these arguments will be checked later.
     if len(unknown_args) > 0:
@@ -230,17 +239,29 @@ def main():
     
     if args.command == "start":
         # set output folder last str
-        last_str = config.get("AdaE_config.train_mode")
-        if last_str not in  ["original", "fix"]:
+        train_mode = config.get("AdaE_config.train_mode")
+        last_str = train_mode
+        # set lr_trans key in config
+        config.set('AdaE_config.lr_trans', lr_trans)
+        config.set('job.device', device)
+        # print(lr_trans)
+        # import time
+        # time.sleep(10)
+        if train_mode not in  ["original", "fix"]:
             last_str+="-"+ str(config.get("AdaE_config.dim_list"))
+        if train_mode  in  ["fix"]:
+            last_str+="-"+ str(config.get("AdaE_config.lr_trans"))
+        
         if args.folder is None:  # means: set default
             config_name = os.path.splitext(os.path.basename(args.config))[0]
             config.folder = os.path.join(
                 kge_base_dir(),
                 "local",
                 "experiments",
+                config.get("dataset.name"),
                 datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + "-"+ last_str
             )
+            
         else:
             config.folder = args.folder
 

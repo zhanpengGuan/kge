@@ -55,8 +55,10 @@ class AdaE(ReciprocalRelationsModel):
         result.size = len(batch["triples"])
         result.prepare_time += time.time()
 
-    def _loss(self, batch_index, batch):
+    def _loss(self, batch_index, batch, is_arch = True):
         "Breaks a batch into subbatches and processes them in turn."
+       
+
         from kge.job.train import TrainingJob
         result = TrainingJob._ProcessBatchResult()
         self._prepare_batch(batch_index, batch, result)
@@ -69,7 +71,7 @@ class AdaE(ReciprocalRelationsModel):
             # determine data used for this subbatch
             subbatch_end = min(subbatch_start + max_subbatch_size, batch_size)
             subbatch_slice = slice(subbatch_start, subbatch_end)
-            self._subloss(batch_index, batch, subbatch_slice, result)
+            self._subloss(batch_index, batch, subbatch_slice, result, is_arch)
 
         return result
     def _subloss(self,
@@ -77,6 +79,7 @@ class AdaE(ReciprocalRelationsModel):
             batch,
             subbatch_slice,
             result,
+            is_arch
             ):
         batch_size = result.size
 
