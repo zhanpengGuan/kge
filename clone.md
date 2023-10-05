@@ -166,5 +166,18 @@
   ## eval的时候，需要再过一遍或者选上一次，这个也顺便解决了eval报错的问题
   现在要选择在eval的时候直接选上一次的好还是，再过一遍好。(再过一遍比较慢，上一次比较快，但也不费多少时间)
   再过一次的实现了，gumbel softmax需要换成一个argmax的方式。，已经实现在mode==auto中。
+  ## embeddings设计的问题
+  ### picker的输入
+  用的上一次embeddings。detach()
+  ### penalty计算
+  目前使用的是过一遍
+  ### _loss计算
+  在bi-level的计算中，会有赋值的操作会更改embeddings的值，因此加了一个self.is_bilevel的判断。
+  ### architecture.step()的更新正常，KGE部分不更新，但是Picker更新。embeddings都不更新。
+  目前picker中FC1的梯度比较小，但是更新正常
 
-  还有就是cli_debug的问题，1024和256都可以搞
+  ### 新写了一个cli_debug_auto.py
+  唯一的区别是python命令的时候save的不同意见args的不同
+
+  #停止命令
+  pkill -u guanzp python

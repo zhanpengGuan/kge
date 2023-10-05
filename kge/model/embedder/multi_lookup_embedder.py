@@ -36,6 +36,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         else:
             self.regularize = self.check_option("regularize", ["", "lp"])
         DEVICE =  config.get("job.device")
+        
         self.sparse = self.get_option("sparse")
         self.config.check("train.trace_level", ["batch", "epoch"])
         self.vocab_size = vocab_size
@@ -159,7 +160,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
                     kwargs["indexes"], return_counts=True
                 )
                 
-                parameters = self._adaE(indexes = unique_indexes.long(), training = self.training, step = self.step)
+                parameters = self._adaE(indexes = unique_indexes, training = self.training, step = self.step)
                
 
                 if self.regularize == "n3" and self.space == 'complex':
@@ -211,8 +212,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
             self._normalize_embeddings()
 
         if self.adae_config['train_mode'] in ['fix','rank','auto']:
-            self.BN = nn.LayerNorm(self.dim).to(DEVICE)
-            self.AF = nn.Tanh().to(DEVICE)
+            self.BN = nn.LayerNorm(self.dim).to(self.device)
+            self.AF = nn.Tanh().to(self.device)
         if self.adae_config['train_mode'] in ['original','fix']:
             # if train_mode is fix, the embedder must have Transform_layer class
             if self.adae_config['train_mode'] == 'fix':
@@ -222,7 +223,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             if self.adae_config['train_mode'] == 'auto':
                 self.picker = Picker(self.config, dataset)
             self.t_s = self.adae_config['t_s']*2
-            self.choice_emb = torch.zeros(self.vocab_size, len(self.dim_list)).to(DEVICE)
+            self.choice_emb = torch.zeros(self.vocab_size, len(self.dim_list)).to(self.device)
             nn.init.uniform_(tensor=self.choice_emb)
             
             
@@ -284,8 +285,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
         """          
         batch_size=len(indexes)
         # 上次的emb，离散选择
-        label  =  self[indexes].unsqueeze(-1)
-        pro = torch.zeros(batch_size,len(self.dim_list)).to(DEVICE).scatter_(1, label, 1)    
+        label  =  self.rank[indexes].unsqueeze(-1)
+        pro = torch.zeros(batch_size,len(self.dim_list)).to(self.device).scatter_(1, label, 1)    
 
         return pro
     
@@ -348,7 +349,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         if if_training:
             Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
         else:
-            Gpro =  torch.zeros(probability.shape).to(DEVICE)
+            Gpro =  torch.zeros(probability.shape).to(self.device)
             Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
             Gpro = Gpro.scatter_(1, Gpro_index, 1) 
             

@@ -141,18 +141,19 @@ def create_parser(config, additional_args=[]):
 def main():
     # default config
     config = Config() 
-    #
+    
     args1 = sys.argv[1:]
-    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_rank.yaml"
-    device = args1[1] if len(args1)>1 else "cuda:0"
-    # other hyperparameters
-    # rank
-    dim_list = eval(str(args1[2])) if len(args1)>2 else "[64,512]"
+   
+    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_auto.yaml"
+    s_u = args1[1] if len(args1)>1 else "2"
+    device = args1[2] if len(args1)>2 else "cuda:0"
+ 
+    
+    
     # now parse the arguments
     parser = create_parser(config)
     args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
-
-   
+    
     
     # If there where unknown args, add them to the parser and reparse. The correctness
     # of these arguments will be checked later.
@@ -240,12 +241,9 @@ def main():
         # set output folder last str
         train_mode = config.get("AdaE_config.train_mode")
         last_str = train_mode
-
+        # set lr_trans key in config
+        config.set('AdaE_config.s_u', int(s_u))
         config.set('job.device', device)
-        # config.set('AdaE_config.lr_trans', lr_trans)
-        
-        # rank
-        config.set('AdaE_config.dim_list', dim_list)
         # print(lr_trans)
         # import time
         # time.sleep(10)
@@ -253,8 +251,8 @@ def main():
             last_str+="-"+ str(config.get("AdaE_config.dim_list"))
         if train_mode  in  ["fix"]:
             last_str+="-"+ str(config.get("AdaE_config.lr_trans"))
-        
-        
+        if train_mode in ["auto"]:
+            last_str+="-"+ str(config.get("AdaE_config.s_u"))
         if args.folder is None:  # means: set default
             config_name = os.path.splitext(os.path.basename(args.config))[0]
             config.folder = os.path.join(

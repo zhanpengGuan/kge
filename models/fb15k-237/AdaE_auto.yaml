@@ -76,13 +76,12 @@ AdaE_config:
   bi-level: False
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'auto'
-  dim_list: [64,256,512]
+  dim_list: [64,512]
   choice_list: [0.2]
   s_u: 2
   ratio: 0.8
   urolled: False
   t_s: 512
   lr_p: 0.1825
-  lr_trans: 0.18
   device: 'cuda:0'
   #目前device没用
