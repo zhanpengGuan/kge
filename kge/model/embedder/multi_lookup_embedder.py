@@ -211,7 +211,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             self.initialize(self._embeddings.weight.data)
             self._normalize_embeddings()
 
-        if self.adae_config['train_mode'] in ['fix','rank','auto']:
+        if self.adae_config['train_mode'] in ['fix','rank','rank_zp','auto']:
             self.BN = nn.LayerNorm(self.dim).to(self.device)
             self.AF = nn.Tanh().to(self.device)
         if self.adae_config['train_mode'] in ['original','fix']:
@@ -219,7 +219,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             if self.adae_config['train_mode'] == 'fix':
                 self.Transform_layer = nn.Linear(self.dim, self.dim)
                 nn.init.xavier_uniform_(self.Transform_layer.weight.data)
-        elif self.adae_config['train_mode'] in ['rank','auto']:
+        elif self.adae_config['train_mode'] in ['rank','rank_zp','auto']:
             if self.adae_config['train_mode'] == 'auto':
                 self.picker = Picker(self.config, dataset)
             self.t_s = self.adae_config['t_s']*2
@@ -250,7 +250,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         indexes = kwargs.get('indexes', None)
         if_training = kwargs.get('training', True)
         step = kwargs.get("step",10000)
-        if self.adae_config['train_mode'] in ['original','fix', 'rank','auto']:
+        if self.adae_config['train_mode'] in ['original','fix','rank_zp', 'rank','auto']:
             if self.adae_config['train_mode'] == 'original':
                 # original means no change
                 emb = self._embeddings(indexes)
@@ -259,6 +259,10 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 emb = self._embeddings(indexes)
                 # emb = self.Transform_layer(emb)
                 emb = self.BN(self.Transform_layer(emb))
+            elif self.adae_config['train_mode'] == 'rank_zp':
+                pro = self._picker_rank(indexes)
+                emb = self._aligment_fix_zp(indexes,probability=pro)
+              
 
             elif self.adae_config['train_mode'] == 'rank':
                 # rank means use ranked dim with each entity 
@@ -329,6 +333,30 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 self.choice_emb[indexes] = probability
 
         return emb_final
+    def _aligment_fix_zp(self, indexes, probability=None,step = 10000):
+        """
+        fixed ,which means no gumbel softmax
+        """
+        emb = []
+        for i in range(0,len(self.dim_list)):     
+            emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
+        output = []
+        for i in range(0,len(self.dim_list)):       
+            output_pre = (self.Selection(self._zero_padding(emb[i])))
+            output.append(output_pre)
+        # 堆叠以便于计算
+        emb = torch.stack(output, dim=1)
+        # no Gumbal softmax probability
+        Gpro = probability
+        #soft selection   
+        emb_final = torch.mul(emb, Gpro.unsqueeze(-1)).sum(dim = 1)
+        with torch.no_grad():
+            # save fianl emb
+            if not self.is_bilevel:
+                self._embeddings.weight.data[indexes] = emb_final
+                self.choice_emb[indexes] = probability
+
+        return emb_final
     
     def _aligment(self, indexes,  if_training, probability=None, step = 10000):
         """
@@ -362,7 +390,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 self.choice_emb[indexes] = probability
 
         return emb_final
+    def _zero_padding(self, emb):
+        
+        padding_size = abs(emb.shape[1]-self.dim)
+        emb = torch.cat((emb,torch.zeros(emb.shape[0], padding_size).to(self.device)),dim=1)
 
+        return emb
 class Picker(nn.Module):
     def __init__( self, config: Config, dataset: Dataset) -> None:
         # # father init

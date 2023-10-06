@@ -21,7 +21,7 @@ eval:
   trace_level: example
 
 multi_lookup_embedder:
-  dim: 256
+  dim: 2048
   initialize: uniform_
   initialize_args:
     normal_:
@@ -54,7 +54,7 @@ train:
   loss_arg: 1.0
   lr_scheduler: ReduceLROnPlateau
   lr_scheduler_args:
-    factor: 0.95
+    factor: 0.75
     mode: max
     patience: 7
     threshold: 0.0001
@@ -75,7 +75,7 @@ AdaE_config:
   adae: True
   bi-level: False
   # train_mode: ['rank','auto','fix','original']
-  train_mode: 'rank'
+  train_mode: 'rank_zp'
   dim_list: [64,512]
   choice_list: [0.2]
   s_u: 2

@@ -227,13 +227,14 @@ def main():
 
     # initialize output folder
     if args.command == "start":
+        last_str = "-"+ str(config.get("lookup_embedder.dim"))
         if args.folder is None:  # means: set default
             config_name = os.path.splitext(os.path.basename(args.config))[0]
             config.folder = os.path.join(
                 kge_base_dir(),
                 "local",
                 "experiments",
-                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name,
+                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + last_str,
             )
         else:
             config.folder = args.folder

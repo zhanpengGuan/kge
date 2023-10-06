@@ -175,9 +175,18 @@
   在bi-level的计算中，会有赋值的操作会更改embeddings的值，因此加了一个self.is_bilevel的判断。
   ### architecture.step()的更新正常，KGE部分不更新，但是Picker更新。embeddings都不更新。
   目前picker中FC1的梯度比较小，但是更新正常
-
+  archi的三部分梯度更新正常
+  _embedding_list[0]的grad在penalty梯度更新正常
+  KGE_model的更新正常,embeddings也正常,三部分正常
   ### 新写了一个cli_debug_auto.py
   唯一的区别是python命令的时候save的不同意见args的不同
+  ### 富威师兄的意见
+  ConvE试一试
+  zero_padding
+  fix的不同大小也试一试
 
-  #停止命令
+  ### zero_padding
+  出现了[64,1024]到256有问题，因为1024无法zero_padding
+  所以对齐的维度要>=dim_list[-1],目前在跑1024
+  # 停止命令
   pkill -u guanzp python

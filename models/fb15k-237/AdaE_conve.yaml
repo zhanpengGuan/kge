@@ -1,10 +1,13 @@
-complex:
+conve:
   entity_embedder:
-    dropout: 0.5
-    regularize_weight: 1.3408200403806817e-08
+    dropout: -0.4457199978380867
+    regularize_weight: 8.605027799155396e-15
+  feature_map_dropout: 0.48769345636955713
+  projection_dropout: 0.5
   relation_embedder:
-    dropout: 0.22684140529516872
-    regularize_weight: 8.266519211068944e-14
+    dropout: 0.11757230155305998
+    regularize_weight: 2.231687936571624e-14
+  round_dim: true
 dataset:
   name: fb15k-237
 eval:
@@ -13,17 +16,17 @@ eval:
     relation_type: true
   trace_level: example
 import:
+- conve
 - reciprocal_relations_model
-- complex
 lookup_embedder:
-  dim: 512
-  initialize: uniform_
+  dim: 256
+  initialize: xavier_normal_
   initialize_args:
     normal_:
       mean: 0.0
-      std: 0.5592429029559286
+      std: 2.568825067721716e-05
     uniform_:
-      a: -0.8328168489829233
+      a: -0.43447215763614
     xavier_normal_:
       gain: 1.0
     xavier_uniform_:
@@ -35,12 +38,13 @@ model: reciprocal_relations_model
 negative_sampling:
   implementation: batch
   num_samples:
-    o: 1000
     p: -1
-    s: 529
 reciprocal_relations_model:
   base_model:
-    type: complex
+    entity_embedder:
+      dim: 288
+    relation_embedder:
+      dim: 288
 train:
   auto_correct: true
   batch_size: 1024
@@ -49,15 +53,29 @@ train:
   lr_scheduler_args:
     factor: 0.95
     mode: max
-    patience: 7
+    patience: 9
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.18255429345236635
-  type: negative_sampling
+    lr: 0.004276645525573683
+  type: 1vsAll
 valid:
   early_stopping:
     min_threshold:
       epochs: 50
       metric_value: 0.05
     patience: 10
+AdaE_config:
+  adae: True
+  bi-level: False
+  # train_mode: ['rank','auto','fix','original']
+  train_mode: 'rank'
+  dim_list: [64,512]
+  choice_list: [0.2]
+  s_u: 2
+  ratio: 0.8
+  urolled: False
+  t_s: 512
+  lr_p: 0.1825
+  device: 'cuda:0'
+  #目前device没用
