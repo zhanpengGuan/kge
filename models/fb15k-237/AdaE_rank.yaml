@@ -21,7 +21,7 @@ eval:
   trace_level: example
 
 multi_lookup_embedder:
-  dim: 2048
+  dim: 1024
   initialize: uniform_
   initialize_args:
     normal_:
@@ -74,8 +74,10 @@ job.device:
 AdaE_config:
   adae: True
   bi-level: False
+  share: False
+  ali_way: 'ts'
   # train_mode: ['rank','auto','fix','original']
-  train_mode: 'rank_zp'
+  train_mode: 'rank'
   dim_list: [64,512]
   choice_list: [0.2]
   s_u: 2

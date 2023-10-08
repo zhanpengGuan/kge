@@ -143,11 +143,16 @@ def main():
     config = Config() 
     #
     args1 = sys.argv[1:]
-    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_rank.yaml"
+    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_conve.yaml"
     device = args1[1] if len(args1)>1 else "cuda:0"
     # other hyperparameters
     # rank
-    dim_list = eval(str(args1[2])) if len(args1)>2 else [64,512]
+    rank = True
+    if rank:
+        dim_list = eval(str(args1[2])) if len(args1)>2 else [64,512]
+    # fix
+    else:
+        dim = args1[2] if len(args1)>2 else 256
     lr = args1[3] if len(args1)>3 else "0.1825"
     # now parse the arguments
     parser = create_parser(config)
@@ -244,20 +249,27 @@ def main():
 
         config.set('job.device', device)
         # config.set('AdaE_config.lr_trans', lr_trans)
-        
-        # rank
-        config.set('AdaE_config.dim_list', dim_list)
         config.set('train.optimizer.default.args.lr',lr)
+        # rank
+        if rank:
+            config.set('AdaE_config.dim_list', dim_list)
+        else:
+            config.set("multi_lookup_embedder.dim",dim)
         # print(lr_trans)
         # import time
         # time.sleep(10)
         if train_mode not in  ["original", "fix"]:
+            last_str+="-share" if config.get("AdaE_config.share") == True else "-noshare"
             last_str+="-"+ str(config.get("AdaE_config.dim_list"))
+            last_str +="-"+str(config.get("AdaE_config.ali_way"))
             last_str +="-"+str(config.get("multi_lookup_embedder.dim"))
+            # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
             last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+'-factor-0.75'
             
         if train_mode  in  ["fix"]:
-            last_str+="-"+ str(config.get("AdaE_config.lr_trans"))
+            last_str+="-"+ str(config.get("multi_lookup_embedder.dim"))+"-noBN"
+            last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))
+            pass
         
         
         if args.folder is None:  # means: set default
@@ -267,7 +279,7 @@ def main():
                 "local",
                 "experiments",
                 config.get("dataset.name"),
-                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + "-"+ last_str
+                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + "-"+ last_str+'no_AFdrop'
             )
             
         else:

@@ -211,37 +211,50 @@ class Multi_LookupEmbedder(KgeEmbedder):
             self.initialize(self._embeddings.weight.data)
             self._normalize_embeddings()
 
-        if self.adae_config['train_mode'] in ['fix','rank','rank_zp','auto']:
-            self.BN = nn.LayerNorm(self.dim).to(self.device)
+        if self.adae_config['train_mode'] in ['fix','rank','auto']:
+            if self.adae_config['ali_way'] == 'ts':
+                self.BN = nn.LayerNorm(self.dim).to(self.device)
+                self.Selection = nn.Sequential(
+                    self.BN,
+                    )
+            elif self.adae_config['ali_way'] == 'zp':
+                pass
             self.AF = nn.Tanh().to(self.device)
+
         if self.adae_config['train_mode'] in ['original','fix']:
             # if train_mode is fix, the embedder must have Transform_layer class
             if self.adae_config['train_mode'] == 'fix':
                 self.Transform_layer = nn.Linear(self.dim, self.dim)
-                nn.init.xavier_uniform_(self.Transform_layer.weight.data)
-        elif self.adae_config['train_mode'] in ['rank','rank_zp','auto']:
+                # nn.init.xavier_uniform_(self.Transform_layer.weight.data)
+                self.Transform_layer.weight.data = torch.eye(self.dim, self.dim)
+        elif self.adae_config['train_mode'] in ['rank','auto']:
             if self.adae_config['train_mode'] == 'auto':
                 self.picker = Picker(self.config, dataset)
             self.t_s = self.adae_config['t_s']*2
             self.choice_emb = torch.zeros(self.vocab_size, len(self.dim_list)).to(self.device)
             nn.init.uniform_(tensor=self.choice_emb)
+
             
             
-            self.Selection = nn.Sequential(
-                    self.BN,
-                    self.AF,
-                    nn.Dropout(0.2),
-                    )
-            for i in range(0,len(self.dim_list)):
-                self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],self.dim) for i in range(0,len(self.dim_list))])
-                nn.init.xavier_uniform_(self.Transform_layer_list[i].weight.data)
+            # aligment way init
+            if self.adae_config['ali_way'] == 'ts':
+                for i in range(0,len(self.dim_list)):
+                    self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],self.dim) for i in range(0,len(self.dim_list))])
+                    nn.init.xavier_uniform_(self.Transform_layer_list[i].weight.data)
+            elif self.adae_config['ali_way'] == 'zp':
+                assert self.dim >= max(self.dim_list)
+
+            # embedding-list shard init
+            if self.adae_config['share']:
+                # share 不需要emb-list
+                pass
+            else:  
+                self._embeddings_list =nn.ParameterList( [nn.Parameter(torch.zeros(self.vocab_size, i)) for i in self.dim_list])
             
-            self._embeddings_list =nn.ParameterList( [nn.Parameter(torch.zeros(self.vocab_size, i)) for i in self.dim_list])
-          
-            if not init_for_load_only:
-                for i in range(len(self.dim_list)):
-                    self.initialize(self._embeddings_list[i])
-                    self._normalize_embeddings_list()
+                if not init_for_load_only:
+                    for i in range(len(self.dim_list)):
+                        self.initialize(self._embeddings_list[i])
+                        self._normalize_embeddings_list()
         else:
             raise ValueError(f"Invalid value train_mode={self.adae_config['train_mode']}")
        
@@ -250,35 +263,25 @@ class Multi_LookupEmbedder(KgeEmbedder):
         indexes = kwargs.get('indexes', None)
         if_training = kwargs.get('training', True)
         step = kwargs.get("step",10000)
-        if self.adae_config['train_mode'] in ['original','fix','rank_zp', 'rank','auto']:
+        if self.adae_config['train_mode'] in ['original', 'fix', 'rank','auto']:
             if self.adae_config['train_mode'] == 'original':
                 # original means no change
                 emb = self._embeddings(indexes)
             elif self.adae_config['train_mode'] == 'fix':
                 # fix means all dim is same
                 emb = self._embeddings(indexes)
-                # emb = self.Transform_layer(emb)
-                emb = self.BN(self.Transform_layer(emb))
-            elif self.adae_config['train_mode'] == 'rank_zp':
-                pro = self._picker_rank(indexes)
-                emb = self._aligment_fix_zp(indexes,probability=pro)
-              
-
+                emb = self.Transform_layer(emb)
+                # emb = self.BN(self.Transform_layer(emb))
             elif self.adae_config['train_mode'] == 'rank':
-                # rank means use ranked dim with each entity 
                 pro = self._picker_rank(indexes)
-                emb = self._aligment_fix(indexes,probability=pro)
-            elif self.adae_config['train_mode'] == 'share_rank':
-                pass
-            elif self.adae_config['train_mode'] == 'share_rank_zp':
-                pass
+                emb = self._aligment_fix(indexes, probability=pro, ali_way=self.adae_config['ali_way'])
             elif self.adae_config['train_mode'] == 'auto':
                 # rank means use learned choice of dim with each entity 
                 if if_training:
                     pro = self._picker(indexes)
                 else:
                     pro = self._picker_fix(indexes)
-                emb = self._aligment(indexes, if_training, probability=pro, step = step)
+                emb = self._aligment(indexes, if_training, probability=pro, ali_way=self.adae_config['ali_way'],step = step)
 
 
         return emb
@@ -309,16 +312,23 @@ class Multi_LookupEmbedder(KgeEmbedder):
         pro =  self.choice_emb[indexes]
         return pro
 
-    def _aligment_fix(self, indexes, probability=None,step = 10000):
+    def _aligment_fix(self, indexes, probability=None, ali_way='ts'):
         """
-        fixed ,which means no gumbel softmax
+        fixed ,which means no gumbel softmax/ used in rank mode
         """
         emb = []
         for i in range(0,len(self.dim_list)):     
-            emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
+            if self.adae_config['share']:
+                emb.append(self._embeddings(indexes)[:,:int(self.dim_list[i])])
+            else:
+                emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
         output = []
-        for i in range(0,len(self.dim_list)):       
-            output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+        for i in range(0,len(self.dim_list)):
+            output_pre = -1
+            if ali_way == 'ts':       
+                output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+            elif ali_way=='zp':
+                 output_pre = self._zero_padding(emb[i])
             output.append(output_pre)
         # 堆叠以便于计算
         emb = torch.stack(output, dim=1)
@@ -333,43 +343,26 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 self.choice_emb[indexes] = probability
 
         return emb_final
-    def _aligment_fix_zp(self, indexes, probability=None,step = 10000):
-        """
-        fixed ,which means no gumbel softmax
-        """
-        emb = []
-        for i in range(0,len(self.dim_list)):     
-            emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
-        output = []
-        for i in range(0,len(self.dim_list)):       
-            output_pre = (self.Selection(self._zero_padding(emb[i])))
-            output.append(output_pre)
-        # 堆叠以便于计算
-        emb = torch.stack(output, dim=1)
-        # no Gumbal softmax probability
-        Gpro = probability
-        #soft selection   
-        emb_final = torch.mul(emb, Gpro.unsqueeze(-1)).sum(dim = 1)
-        with torch.no_grad():
-            # save fianl emb
-            if not self.is_bilevel:
-                self._embeddings.weight.data[indexes] = emb_final
-                self.choice_emb[indexes] = probability
-
-        return emb_final
+  
     
-    def _aligment(self, indexes,  if_training, probability=None, step = 10000):
+    def _aligment(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
         """
-        align with gumbal softmax
+        align with gumbal softmax / only be used in auto mode
         """
   
         Tau=max(0.01,1-(5.0e-5)*step)
         emb = []
-        for i in range(0,len(self.dim_list)):     
-            emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
+        for i in range(0,len(self.dim_list)): 
+            if self.adae_config['share']:
+                emb.append(self._embeddings(indexes)[:,:int(self.dim_list[i])])
+            else:    
+                emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
         output = []
-        for i in range(0,len(self.dim_list)):       
-            output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+        for i in range(0,len(self.dim_list)):    
+            if  ali_way == 'ts':
+                output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+            elif ali_way=='zp':
+                 output_pre = self._zero_padding(emb[i])
             output.append(output_pre)
         # 堆叠以便于计算
         head_s = torch.stack(output, dim=1)

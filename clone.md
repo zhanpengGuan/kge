@@ -71,6 +71,7 @@
     '_base_model._entity_embedder.Transform_layer_list.0、1.weight'、bais
     '_base_model._entity_embedder._embeddings_list.0、1'
     发现picker中计算loss的过程，其中有导致了embeddings的更新。
+
     2023/1005
     embeddings有几个用处：
     picker的输入 ，已经解决,采用embeddings.detach(),也就是上一次的值
@@ -82,6 +83,9 @@
     只要设计取embedding，emb()就会赋值 ：有好几处loss的计算属于bi-level的过程，并不需要更改embeddings，赋值只存在于kge_model的aligment的过程。 已经解决
     现在发现picker部分的grad很小-11次方,换成了relu有所缓解
     step让gumbel softmax温度解决了一部分,relation_emb和entity_emb速度为2：1
+    2023/1008
+    重新调整了架构，rank下加入了ts和zp两种对齐方式，并在zp下设置断言保证不报错
+    auto也完成了ts和zp两种对齐方式。也就是说，aligment_way完成了
 
     
 
@@ -168,7 +172,7 @@
   再过一次的实现了，gumbel softmax需要换成一个argmax的方式。，已经实现在mode==auto中。
   ## embeddings设计的问题
   ### picker的输入
-  用的上一次embeddings。detach()
+  用的上一次embeddings.detach()
   ### penalty计算
   目前使用的是过一遍
   ### _loss计算
@@ -183,10 +187,39 @@
   ### 富威师兄的意见
   ConvE试一试
   zero_padding
-  fix的不同大小也试一试
+  fix的不同大小也试一试 get，发现学习率调整大一点会好一点
 
   ### zero_padding
   出现了[64,1024]到256有问题，因为1024无法zero_padding
   所以对齐的维度要>=dim_list[-1],目前在跑1024
+
+
+
+
+  做eye初始化，load
+
+  convE调试写好代码跑
+
+  zero_padding只适合share_rank吧，毕竟初er始化的方法是uniform,所以先看看share_rank的写法
+  share的话，ts在测试会报错不知道为什么
+  ### noAF_drop
+  noAF_drop会好很多
+  现有任务
+  rank【1024,1024】在跑两个
+  noshare_zp正在搞 两个
+  share_ts报错了
+  share_zp回去跑两个
+  conve可以调试一下
+
+  
+
+
+
+
+
+
+
   # 停止命令
-  pkill -u guanzp python
+  pkill -u  guanzp python
+  pkill  -u guanzp -f "python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:4"
+  

@@ -704,7 +704,10 @@ user:
 AdaE_config:
   adae: False 
   bi-level: False
-  # train_mode: ['rank','Auto','fixed']
+  share: False
+  # aliment_way:['ts','zp'](transform_layer,zero_padding)
+  ali_way: 'ts'
+  # train_mode: ['original','rank','auto','fix']
   train_mode: 'rank'
   dim_list: [64,256]
   choice_list: [0.8]

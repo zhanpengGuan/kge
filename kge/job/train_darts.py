@@ -4,6 +4,8 @@ import torch.utils.data
 from kge.job import Job
 from kge.job.train import TrainingJob, _generate_worker_init_fn
 from kge.job.train_negative_sampling import TrainingJobNegativeSampling
+from kge.job.train_1vsAll import TrainingJob1vsAll
+from kge.job.train_KvsAll import TrainingJobKvsAll
 from kge.util import KgeSampler
 from kge.model.transe import TransEScorer
 import itertools
@@ -31,7 +33,7 @@ SLOT_STR = ["s", "p", "o"]
 
 
 
-class TrainingJobDarts(TrainingJobNegativeSampling):
+class TrainingJobDarts(TrainingJobNegativeSampling, TrainingJobKvsAll, TrainingJob1vsAll ):
     def __init__(
         self, config, dataset, parent_job=None, model=None, forward_only=False
     ):
@@ -103,76 +105,134 @@ class TrainingJobDarts(TrainingJobNegativeSampling):
                     group["initial_lr"]=group["lr"]
 
                 self.architect = Architect(self.model, params_p, self.optimizer_p, self, self.adae_config)
-    # overwrite
+    
+    def _get_collate_fun(self, mode='ng_sample'):
 
-    def _prepare(self):
-        super()._prepare()
-        # select negative sampling implementation
-        self._implementation = self.config.check(
-            "negative_sampling.implementation", ["triple", "all", "batch", "auto"],
-        )
-        if self._implementation == "auto":
-            max_nr_of_negs = max(self._sampler.num_samples)
-            if self._sampler.shared:
-                self._implementation = "batch"
-            elif max_nr_of_negs <= 30:
-                self._implementation = "triple"
-            else:
-                self._implementation = "batch"
-            self.config.set(
-                "negative_sampling.implementation", self._implementation, log=True
-            )
+        mode_list = ['ng_sample', '1vsall', 'kvsall']
+        if mode == mode_list[0]:
+            # create the collate function
+            def collate(batch):
+                """For a batch of size n, returns a tuple of:
 
-        self.config.log(
-            "Preparing negative sampling training job with "
-            "'{}' scoring function ...".format(self._implementation)
-        )
+                - triples (tensor of shape [n,3], ),
+                - negative_samples (list of tensors of shape [n,num_samples]; 3 elements
+                in order S,P,O)
+                """
+                triples = self.dataset.split(self.train_split)[batch, :].long()
+                # labels = torch.zeros((len(batch), self._sampler.num_negatives_total + 1))
+                # labels[:, 0] = 1
+                # labels = labels.view(-1)
 
-        # construct dataloader
-        self.num_examples = self.dataset.split(self.train_split).size(0)
-        self.loader = torch.utils.data.DataLoader(
-            range(self.num_examples),
-            collate_fn=self._get_collate_fun(),
-            shuffle=True,
-            batch_size=self.batch_size,
-            num_workers=self.config.get("train.num_workers"),
-            worker_init_fn=_generate_worker_init_fn(self.config),
-            pin_memory=self.config.get("train.pin_memory"),
-        )
-    def _get_collate_fun(self):
-        # create the collate function
-        def collate(batch):
-            """For a batch of size n, returns a tuple of:
+                negative_samples = list()
+                for slot in [S, P, O]:
+                    negative_samples.append(self._sampler.sample(triples, slot))
+                triples_t, triples_v = None, None
+                negative_samples_t, negative_samples_v =  list(),  list() 
+                
+                ratio = self.adae_config['ratio']
+                s_u = self.adae_config['s_u']
+                if s_u:
+                    # split data for darts
+                    triples_t = triples[:int(ratio*triples.shape[0])]
+                    triples_v = triples[int(ratio*triples.shape[0]):]
+                    for slot in [S, P, O]:
+                        negative_samples_t.append(self._sampler.sample(triples_t, slot))
+                        negative_samples_v.append(self._sampler.sample(triples_v, slot))
 
-            - triples (tensor of shape [n,3], ),
-            - negative_samples (list of tensors of shape [n,num_samples]; 3 elements
-              in order S,P,O)
-            """
-            triples = self.dataset.split(self.train_split)[batch, :].long()
-            # labels = torch.zeros((len(batch), self._sampler.num_negatives_total + 1))
-            # labels[:, 0] = 1
-            # labels = labels.view(-1)
+                    # return {"triples": triples, "negative_samples": negative_samples,  "triples_t": triples_t, "triples_v": triples_v, "negative_samples_t": negative_samples_t, "negative_samples_v": negative_samples_v}
+                return [{"triples": triples_t, "negative_samples": negative_samples_t},  {"triples": triples_v, "negative_samples": negative_samples_v}]
+            return collate 
+        elif mode== mode_list[1]:
+             # create the collate function
+            def collate(batch):
+                """For a batch of size n, returns a dictionary of:
 
-            negative_samples = list()
-            for slot in [S, P, O]:
-                negative_samples.append(self._sampler.sample(triples, slot))
-            triples_t, triples_v = None, None
-            negative_samples_t, negative_samples_v =  list(),  list() 
-            
-            ratio = self.adae_config['ratio']
-            s_u = self.adae_config['s_u']
-            if s_u:
-                # split data for darts
-              triples_t = triples[:int(ratio*triples.shape[0])]
-              triples_v = triples[int(ratio*triples.shape[0]):]
-              for slot in [S, P, O]:
-                negative_samples_t.append(self._sampler.sample(triples_t, slot))
-                negative_samples_v.append(self._sampler.sample(triples_v, slot))
+                - queries: nx2 tensor, row = query (sp, po, or so indexes)
+                - label_coords: for each query, position of true answers (an Nx2 tensor,
+                first columns holds query index, second colum holds index of label)
+                - query_type_indexes (vector of size n holding the query type of each query)
+                - triples (all true triples in the batch; e.g., needed for weighted
+                penalties)
 
-            # return {"triples": triples, "negative_samples": negative_samples,  "triples_t": triples_t, "triples_v": triples_v, "negative_samples_t": negative_samples_t, "negative_samples_v": negative_samples_v}
-            return [{"triples": triples_t, "negative_samples": negative_samples_t},  {"triples": triples_v, "negative_samples": negative_samples_v}]
+                """
 
-        return collate
+                # count how many labels we have across the entire batch
+                num_ones = 0
+                for example_index in batch:
+                    start = 0
+                    for query_type_index in range(len(self.query_types)):
+                        end = self.query_last_example[query_type_index]
+                        if example_index < end:
+                            example_index -= start
+                            num_ones += self.query_indexes[query_type_index]._values_offset[
+                                example_index + 1
+                            ]
+                            num_ones -= self.query_indexes[query_type_index]._values_offset[
+                                example_index
+                            ]
+                            break
+                        start = end
+
+                # now create the batch elements
+                queries_batch = torch.zeros([len(batch), 2], dtype=torch.long)
+                query_type_indexes_batch = torch.zeros([len(batch)], dtype=torch.long)
+                label_coords_batch = torch.zeros([num_ones, 2], dtype=torch.int)
+                triples_batch = torch.zeros([num_ones, 3], dtype=torch.long)
+                current_index = 0
+                for batch_index, example_index in enumerate(batch):
+                    start = 0
+                    for query_type_index, query_type in enumerate(self.query_types):
+                        end = self.query_last_example[query_type_index]
+                        if example_index < end:
+                            example_index -= start
+                            query_type_indexes_batch[batch_index] = query_type_index
+                            queries = self.query_indexes[query_type_index]._keys
+                            label_offsets = self.query_indexes[
+                                query_type_index
+                            ]._values_offset
+                            labels = self.query_indexes[query_type_index]._values
+                            if query_type == "sp_":
+                                query_col_1, query_col_2, target_col = S, P, O
+                            elif query_type == "s_o":
+                                query_col_1, target_col, query_col_2 = S, P, O
+                            else:
+                                target_col, query_col_1, query_col_2 = S, P, O
+                            break
+                        start = end
+
+                    queries_batch[batch_index,] = queries[example_index]
+                    start = label_offsets[example_index]
+                    end = label_offsets[example_index + 1]
+                    size = end - start
+                    label_coords_batch[
+                        current_index : (current_index + size), 0
+                    ] = batch_index
+                    label_coords_batch[current_index : (current_index + size), 1] = labels[
+                        start:end
+                    ]
+                    triples_batch[
+                        current_index : (current_index + size), query_col_1
+                    ] = queries[example_index][0]
+                    triples_batch[
+                        current_index : (current_index + size), query_col_2
+                    ] = queries[example_index][1]
+                    triples_batch[
+                        current_index : (current_index + size), target_col
+                    ] = labels[start:end]
+                    current_index += size
+
+                # all done
+                return {
+                    "queries": queries_batch,
+                    "label_coords": label_coords_batch,
+                    "query_type_indexes": query_type_indexes_batch,
+                    "triples": triples_batch,
+                }
+
+            return collate
+        elif mode== mode_list[2]:
+            return 
+
 
     def run_epoch(self) -> Dict[str, Any]:
         """ Runs an epoch and returns its trace entry. """
@@ -435,4 +495,31 @@ class TrainingJobDarts(TrainingJobNegativeSampling):
         self.current_trace["epoch"] = None
 
         return trace_entry
-
+    def save_to(self, checkpoint: Dict) -> Dict:
+        """used in darts"""
+        train_mode = self.adae_config['train_mode']
+        if train_mode in ['original','fix','rank']:
+            train_checkpoint = {
+                "type": "train",
+                "epoch": self.epoch,
+                "valid_trace": self.valid_trace,
+                "model": self.model.save(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+                "lr_scheduler_state_dict": self.kge_lr_scheduler.state_dict(),
+                "job_id": self.job_id,
+            }
+        elif train_mode == 'auto':
+            train_checkpoint = {
+                "type": "train",
+                "epoch": self.epoch,
+                "valid_trace": self.valid_trace,
+                "model": self.model.save(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+                "optimizer_p_state_dict": self.optimizer_p.state_dict(),
+                "lr_scheduler_state_dict": self.kge_lr_scheduler.state_dict(),
+                "lr_scheduler_p_state_dict": self.kge_lr_scheduler_p.state_dict(),
+                "job_id": self.job_id,
+            }
+        train_checkpoint = self.config.save_to(train_checkpoint)
+        checkpoint.update(train_checkpoint)
+        return checkpoint

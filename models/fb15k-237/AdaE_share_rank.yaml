@@ -1,13 +1,17 @@
-conve:
+
+import:
+- AdaE
+- complex
+- multi_lookup_embedder
+complex:
   entity_embedder:
-    dropout: -0.4457199978380867
-    regularize_weight: 8.605027799155396e-15
-  feature_map_dropout: 0.48769345636955713
-  projection_dropout: 0.5
+    type: multi_lookup_embedder
+    dropout: 0.5
+    regularize_weight: 1.3408200403806817e-08
   relation_embedder:
-    dropout: 0.11757230155305998
-    regularize_weight: 2.231687936571624e-14
-  round_dim: true
+    type: multi_lookup_embedder
+    dropout: 0.22684140529516872
+    regularize_weight: 8.266519211068944e-14
 dataset:
   name: fb15k-237
 eval:
@@ -15,18 +19,17 @@ eval:
   metrics_per:
     relation_type: true
   trace_level: example
-import:
-- conve
-- reciprocal_relations_model
-lookup_embedder:
-  dim: 256
-  initialize: xavier_normal_
+
+multi_lookup_embedder:
+  dim: 1024
+  dim: 1024
+  initialize: uniform_
   initialize_args:
     normal_:
       mean: 0.0
-      std: 2.568825067721716e-05
+      std: 0.5592429029559286
     uniform_:
-      a: -0.43447215763614
+      a: -0.8328168489829233
     xavier_normal_:
       gain: 1.0
     xavier_uniform_:
@@ -34,30 +37,31 @@ lookup_embedder:
   regularize_args:
     p: 3
     weighted: true
-model: reciprocal_relations_model
+model: AdaE
+
 negative_sampling:
   implementation: batch
   num_samples:
+    o: 1000
     p: -1
-reciprocal_relations_model:
+    s: 529
+
+AdaE:
   base_model:
-    entity_embedder:
-      dim: 288
-    relation_embedder:
-      dim: 288
+    type: complex
 train:
   auto_correct: true
   batch_size: 1024
   loss_arg: 1.0
   lr_scheduler: ReduceLROnPlateau
   lr_scheduler_args:
-    factor: 0.95
+    factor: 0.75
     mode: max
-    patience: 9
+    patience: 7
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.004276645525573683
+    lr: 0.18255429345236635
   type: darts
 valid:
   early_stopping:
@@ -65,11 +69,16 @@ valid:
       epochs: 50
       metric_value: 0.05
     patience: 10
+  every: 5
+job.device:
+  cuda:0
 AdaE_config:
   adae: True
   bi-level: False
-  # train_mode: ['rank','auto','fix','original']
+  share: True
+  # train_mode: ['rank','rank_zp','auto','fix','original']
   train_mode: 'rank'
+  ali_way: 'zp'
   dim_list: [64,512]
   choice_list: [0.2]
   s_u: 2
