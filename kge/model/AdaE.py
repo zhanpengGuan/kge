@@ -9,6 +9,7 @@ from kge.util import  KgeLoss, KgeLRScheduler
 DEVICE = 'cpu'
 import torch.nn.functional as F
 from kge.util import KgeSampler
+
 from torch import Tensor
 SLOTS = [0, 1, 2]
 S, P, O = SLOTS
@@ -31,6 +32,7 @@ class AdaE(ReciprocalRelationsModel):
         self._max_subbatch_size: int = config.get("train.subbatch_size")
         self.loss = KgeLoss.create(config)
         self.is_forward_only = init_for_load_only
+        self.type = config.options['AdaE_config']['type']
     # def get_s_embedder(self) -> KgeEmbedder:
     #         return self._multi_entity_embedder
     # def get_o_embedder(self) -> KgeEmbedder:
@@ -38,7 +40,19 @@ class AdaE(ReciprocalRelationsModel):
     # def get_p_embedder(self) -> KgeEmbedder:
     #         return self._multi_relation_embedder
 
-    def _prepare_batch(
+
+    def _loss(self, batch_index, batch, is_arch = True):
+        if  self.type =='ng_sample':
+            return self._loss_ng(batch_index, batch,is_arch)
+        elif self.type == '1vsall':
+            return self._loss_1all(batch_index, batch,is_arch)
+        elif self.type == 'kvsall':
+            return self._loss_kall(batch_index, batch,is_arch)
+        else:
+            raise ValueError("no type {} in training ways".format(self.type))
+        
+
+    def _prepare_batch_ng(
         self, batch_index, batch, result
     ):
         # move triples and negatives to GPU. With some implementaiton effort, this may
@@ -54,14 +68,13 @@ class AdaE(ReciprocalRelationsModel):
         batch["labels"] = [None] * 3  # reuse label tensors b/w subbatches
         result.size = len(batch["triples"])
         result.prepare_time += time.time()
-
-    def _loss(self, batch_index, batch, is_arch = True):
+    def _loss_ng(self, batch_index, batch, is_arch = True):
         "Breaks a batch into subbatches and processes them in turn."
        
 
         from kge.job.train import TrainingJob
         result = TrainingJob._ProcessBatchResult()
-        self._prepare_batch(batch_index, batch, result)
+        self._prepare_batch_ng(batch_index, batch, result)
         batch_size = result.size
 
         max_subbatch_size = (
@@ -71,10 +84,10 @@ class AdaE(ReciprocalRelationsModel):
             # determine data used for this subbatch
             subbatch_end = min(subbatch_start + max_subbatch_size, batch_size)
             subbatch_slice = slice(subbatch_start, subbatch_end)
-            self._subloss(batch_index, batch, subbatch_slice, result, is_arch)
+            self._subloss_ng(batch_index, batch, subbatch_slice, result, is_arch)
 
         return result
-    def _subloss(self,
+    def _subloss_ng(self,
             batch_index,
             batch,
             subbatch_slice,
@@ -135,13 +148,63 @@ class AdaE(ReciprocalRelationsModel):
             # if not self.is_forward_only:
             #     loss_value_torch.backward()
             # result.backward_time += time.time()
-    def score_spo(self, s: Tensor, p: Tensor, o: Tensor, direction=None) -> Tensor:
-        if direction == "o":
-            return super().score_spo(s, p, o, "o")
-        elif direction == "s":
-            return super().score_spo(o, p + self.dataset.num_relations(), s, "o")
-        else:
-            raise Exception(
-                "The reciprocal relations model cannot compute "
-                "undirected spo scores."
-            )
+    
+    def _loss_1all(self, batch_index, batch, is_arch = True):
+        "Breaks a batch into subbatches and processes them in turn."
+       
+
+        from kge.job.train import TrainingJob
+        result = TrainingJob._ProcessBatchResult()
+        self._prepare_batch_1all(batch_index, batch, result)
+        batch_size = result.size
+
+        max_subbatch_size = (
+            self._max_subbatch_size if self._max_subbatch_size > 0 else batch_size
+        )
+        for subbatch_start in range(0, batch_size, max_subbatch_size):
+            # determine data used for this subbatch
+            subbatch_end = min(subbatch_start + max_subbatch_size, batch_size)
+            subbatch_slice = slice(subbatch_start, subbatch_end)
+            self._subloss_1all(batch_index, batch, subbatch_slice, result)
+
+        return result
+    def _prepare_batch_1all(
+            self, batch_index, batch, result
+        ):
+            result.size = len(batch["triples"])
+
+    def _subloss_1all(
+        self,
+        batch_index,
+        batch,
+        subbatch_slice,
+        result
+    ):
+        batch_size = result.size
+
+        # prepare
+        result.prepare_time -= time.time()
+        triples = batch["triples"][subbatch_slice].to(self.device)
+        result.prepare_time += time.time()
+
+        # forward/backward pass (sp)
+        result.forward_time -= time.time()
+        scores_sp = self.score_sp(triples[:, 0], triples[:, 1])
+        loss_value_sp = self.loss(scores_sp, triples[:, 2]) / batch_size
+        result.avg_loss += loss_value_sp
+        result.forward_time += time.time()
+        # result.backward_time = -time.time()
+        # if not self.is_forward_only:
+        #     loss_value_sp.backward()
+        # result.backward_time += time.time()
+
+        # forward/backward pass (po)
+        result.forward_time -= time.time()
+        scores_po = self.score_po(triples[:, 1], triples[:, 2])
+        loss_value_po = self.loss(scores_po, triples[:, 0]) / batch_size
+        result.avg_loss += loss_value_po
+        result.forward_time += time.time()
+        # result.backward_time -= time.time()
+        # if not self.is_forward_only:
+        #     loss_value_po.backward()
+        # result.backward_time += time.time()

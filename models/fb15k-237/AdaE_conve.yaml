@@ -1,10 +1,12 @@
 conve:
   entity_embedder:
+    type: multi_lookup_embedder
     dropout: -0.4457199978380867
     regularize_weight: 8.605027799155396e-15
   feature_map_dropout: 0.48769345636955713
   projection_dropout: 0.5
   relation_embedder:
+    type: multi_lookup_embedder
     dropout: 0.11757230155305998
     regularize_weight: 2.231687936571624e-14
   round_dim: true
@@ -17,8 +19,10 @@ eval:
   trace_level: example
 import:
 - conve
+- AdaE
+- multi_lookup_embedder
 - reciprocal_relations_model
-lookup_embedder:
+multi_lookup_embedder:
   dim: 256
   initialize: xavier_normal_
   initialize_args:
@@ -34,12 +38,12 @@ lookup_embedder:
   regularize_args:
     p: 3
     weighted: true
-model: reciprocal_relations_model
+model: AdaE
 negative_sampling:
   implementation: batch
   num_samples:
     p: -1
-reciprocal_relations_model:
+AdaE:
   base_model:
     entity_embedder:
       dim: 288
@@ -65,11 +69,14 @@ valid:
       epochs: 50
       metric_value: 0.05
     patience: 10
+  # every: 1
 AdaE_config:
   adae: True
   bi-level: False
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'rank'
+  share: False
+  ali_way: 'ts'
   dim_list: [64,512]
   choice_list: [0.2]
   s_u: 2
@@ -78,4 +85,6 @@ AdaE_config:
   t_s: 512
   lr_p: 0.1825
   device: 'cuda:0'
+  # ['ng_sample','1vsall','kvsall']
+  type: '1vsall'
   #目前device没用

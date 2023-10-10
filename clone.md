@@ -203,15 +203,18 @@
   zero_padding只适合share_rank吧，毕竟初er始化的方法是uniform,所以先看看share_rank的写法
   share的话，ts在测试会报错不知道为什么
   ### noAF_drop
-  noAF_drop会好很多
+  noAF_drop会好很多 
   现有任务
-  rank【1024,1024】在跑两个
+  rank【1024,1024】在跑两个 写了
   noshare_zp正在搞 两个
   share_ts报错了
-  share_zp回去跑两个
+  share_zp回去跑两个 跑了，最好
   conve可以调试一下
 
-  
+  ### rank现在没有吧全部的训练数据用于其中，而是80%，每次训练（但是会打乱）
+
+  conve跑了rank
+  跑了auto
 
 
 

@@ -143,7 +143,7 @@ def main():
     config = Config() 
     #
     args1 = sys.argv[1:]
-    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_conve.yaml"
+    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_rank.yaml"
     device = args1[1] if len(args1)>1 else "cuda:0"
     # other hyperparameters
     # rank
@@ -153,7 +153,8 @@ def main():
     # fix
     else:
         dim = args1[2] if len(args1)>2 else 256
-    lr = args1[3] if len(args1)>3 else "0.1825"
+    lr = args1[3] if len(args1)>3 else "0.0042766"
+    dropout = args1[4] if len(args1)>4 else "0.5"
     # now parse the arguments
     parser = create_parser(config)
     args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
@@ -250,6 +251,7 @@ def main():
         config.set('job.device', device)
         # config.set('AdaE_config.lr_trans', lr_trans)
         config.set('train.optimizer.default.args.lr',lr)
+        config.set('complex.entity_embedder.dropout', dropout)
         # rank
         if rank:
             config.set('AdaE_config.dim_list', dim_list)
@@ -264,7 +266,7 @@ def main():
             last_str +="-"+str(config.get("AdaE_config.ali_way"))
             last_str +="-"+str(config.get("multi_lookup_embedder.dim"))
             # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
-            last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+'-factor-0.75'
+            last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+str(dropout)
             
         if train_mode  in  ["fix"]:
             last_str+="-"+ str(config.get("multi_lookup_embedder.dim"))+"-noBN"
@@ -279,7 +281,7 @@ def main():
                 "local",
                 "experiments",
                 config.get("dataset.name"),
-                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + "-"+ last_str+'no_AFdrop'
+                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + "-"+ last_str
             )
             
         else:

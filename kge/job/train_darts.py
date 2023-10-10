@@ -33,7 +33,7 @@ SLOT_STR = ["s", "p", "o"]
 
 
 
-class TrainingJobDarts(TrainingJobNegativeSampling, TrainingJobKvsAll, TrainingJob1vsAll ):
+class TrainingJobDarts( TrainingJob1vsAll, TrainingJobNegativeSampling,  TrainingJobKvsAll):
     def __init__(
         self, config, dataset, parent_job=None, model=None, forward_only=False
     ):
@@ -43,34 +43,38 @@ class TrainingJobDarts(TrainingJobNegativeSampling, TrainingJobKvsAll, TrainingJ
         # need optimizer_c
         self.adae_config = self.config.options['AdaE_config']
         self.lr_trans = self.adae_config["lr_trans"]
+        self.parent = [TrainingJobNegativeSampling,  TrainingJob1vsAll, TrainingJobKvsAll]
+        self.mode_list = ['ng_sample', '1vsall', 'kvsall']
+        self.mode = self.adae_config['type']
         if not self.is_forward_only:
             if self.adae_config['train_mode'] in ['original']:
                 pass
             elif self.adae_config['train_mode'] in ['fix']:
-                embeddings_params_e = self.model._base_model._entity_embedder._embeddings.parameters()
-                embeddings_params_r = self.model._base_model._relation_embedder._embeddings.parameters()
-                embeddings_params_e_id = list( map( id, embeddings_params_e ))
-                embeddings_params_r_id = list( map( id, embeddings_params_r ))
-                trans_e = self.model._base_model._entity_embedder.Transform_layer.parameters()
-                trans_r = self.model._base_model._relation_embedder.Transform_layer.parameters()
-                trans_e_id = list( map( id, trans_e ) )
-                trans_r_id = list( map( id, trans_r ) )
-                BN_e_id = list(map( id, self.model._base_model._entity_embedder.BN.parameters() )) 
-                BN_r_id = list(map( id, self.model._base_model._relation_embedder.BN.parameters() ))
-                # params
-                base_params = filter(lambda p: id(p) not in trans_e_id+trans_r_id+BN_e_id+BN_r_id, self.model.parameters())
-                trans_params = filter(lambda p: id(p) not in embeddings_params_e_id+embeddings_params_r_id, self.model.parameters())
-                opt = getattr(torch.optim, config.get("train.optimizer.default.type"))
-                self.optimizer = opt(
-                    [{'params':base_params},
-                     {'params':trans_params, 'lr': self.lr_trans},
-                     ], **config.get("train.optimizer.default.args") 
-                    ) #用来更新theta的optimizer
+                pass
+                # embeddings_params_e = self.model._base_model._entity_embedder._embeddings.parameters()
+                # embeddings_params_r = self.model._base_model._relation_embedder._embeddings.parameters()
+                # embeddings_params_e_id = list( map( id, embeddings_params_e ))
+                # embeddings_params_r_id = list( map( id, embeddings_params_r ))
+                # trans_e = self.model._base_model._entity_embedder.Transform_layer.parameters()
+                # trans_r = self.model._base_model._relation_embedder.Transform_layer.parameters()
+                # trans_e_id = list( map( id, trans_e ) )
+                # trans_r_id = list( map( id, trans_r ) )
+                # BN_e_id = list(map( id, self.model._base_model._entity_embedder.BN.parameters() )) 
+                # BN_r_id = list(map( id, self.model._base_model._relation_embedder.BN.parameters() ))
+                # # params
+                # base_params = filter(lambda p: id(p) not in trans_e_id+trans_r_id+BN_e_id+BN_r_id, self.model.parameters())
+                # trans_params = filter(lambda p: id(p) not in embeddings_params_e_id+embeddings_params_r_id, self.model.parameters())
+                # opt = getattr(torch.optim, config.get("train.optimizer.default.type"))
+                # self.optimizer = opt(
+                #     [{'params':base_params},
+                #      {'params':trans_params, 'lr': self.lr_trans},
+                #      ], **config.get("train.optimizer.default.args") 
+                #     ) #用来更新theta的optimizer
                 
-                self.kge_lr_scheduler = KgeLRScheduler(config, self.optimizer)
-                self._lr_warmup = self.config.get("train.lr_warmup")
-                for group in self.optimizer.param_groups:
-                    group["initial_lr"]=group["lr"]
+                # self.kge_lr_scheduler = KgeLRScheduler(config, self.optimizer)
+                # self._lr_warmup = self.config.get("train.lr_warmup")
+                # for group in self.optimizer.param_groups:
+                #     group["initial_lr"]=group["lr"]
             elif self.adae_config['train_mode'] in ['rank']:
                 pass
             elif self.adae_config['train_mode'] in ['auto']:
@@ -106,9 +110,11 @@ class TrainingJobDarts(TrainingJobNegativeSampling, TrainingJobKvsAll, TrainingJ
 
                 self.architect = Architect(self.model, params_p, self.optimizer_p, self, self.adae_config)
     
-    def _get_collate_fun(self, mode='ng_sample'):
 
-        mode_list = ['ng_sample', '1vsall', 'kvsall']
+
+    def _get_collate_fun(self):
+        mode = self.mode
+        mode_list = ['ng_sample', 'kvsall','1vsall']
         if mode == mode_list[0]:
             # create the collate function
             def collate(batch):
@@ -231,7 +237,17 @@ class TrainingJobDarts(TrainingJobNegativeSampling, TrainingJobKvsAll, TrainingJ
 
             return collate
         elif mode== mode_list[2]:
-            return 
+            def collate(batch):
+                triples = self.dataset.split(self.train_split)[batch, :].long()
+                ratio = self.adae_config['ratio']
+                s_u = self.adae_config['s_u']
+                triples_t, triples_v = None, None
+                if s_u:
+                    # split data for darts
+                    triples_t = triples[:int(ratio*triples.shape[0])]
+                    triples_v = triples[int(ratio*triples.shape[0]):]
+                return  [{"triples": triples_t},{"triples": triples_v}]
+            return collate
 
 
     def run_epoch(self) -> Dict[str, Any]:

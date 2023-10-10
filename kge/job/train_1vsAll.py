@@ -30,15 +30,14 @@ class TrainingJob1vsAll(TrainingJob):
         self.num_examples = self.dataset.split(self.train_split).size(0)
         self.loader = torch.utils.data.DataLoader(
             range(self.num_examples),
-            collate_fn=lambda batch: {
-                "triples": self.dataset.split(self.train_split)[batch, :].long()
-            },
+            collate_fn=self._get_collate_fun(),#修改过
             shuffle=True,
             batch_size=self.batch_size,
             num_workers=self.config.get("train.num_workers"),
             worker_init_fn=_generate_worker_init_fn(self.config),
             pin_memory=self.config.get("train.pin_memory"),
         )
+
 
     def _prepare_batch(
         self, batch_index, batch, result: TrainingJob._ProcessBatchResult

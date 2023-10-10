@@ -73,7 +73,10 @@ class Architect(object):
 
   
   def _backward_step_unrolled(self, batch_index, batch_t, batch_v, eta, network_optimizer,mode):
-    input_train, target_train, input_valid, target_valid, = batch_t["triples"], batch_t["negative_samples"], batch_v['triples'], batch_v["negative_samples"]
+    if self.args['type']=='1vsall':
+      input_train, target_train, input_valid, target_valid, = batch_t["triples"], None, batch_v['triples'], None
+    elif self.args['type']=='ng_sampling':
+      input_train, target_train, input_valid, target_valid, = batch_t["triples"], batch_t["negative_samples"], batch_v['triples'], batch_v["negative_samples"]
     #计算公式六：dαLval(w',α) ，其中w' = w − ξ*dwLtrain(w, α)
     #w'
     unrolled_model = self._compute_unrolled_model(batch_index, batch_t, eta, network_optimizer, mode)#unrolled_model里的w已经是做了一次更新后的w，也就是得到了w'

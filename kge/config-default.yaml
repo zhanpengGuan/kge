@@ -718,6 +718,7 @@ AdaE_config:
   lr_p: 0.00001
   lr_trans: 0.00001
   device: 'cpu'
+  type: 'ng_sample'
 
   
 # Options for negative sampling training (train.type=="negative_sampling")

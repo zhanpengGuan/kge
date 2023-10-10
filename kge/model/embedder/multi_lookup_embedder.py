@@ -104,8 +104,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
         return self._postprocess(self._adaE(indexes = indexes.long(), training = self.training, step = self.step))
         # return self._postprocess(self._embeddings(indexes.long()))
     def embed_all(self) -> Tensor:
-        # undo
-        return self._postprocess(self._embeddings_all())
+        self.step += 1/15
+        # all indexes
+        indexes = torch.arange(
+                self.vocab_size, dtype=torch.long, device=self._embeddings.weight.device
+            )
+        return self._postprocess(self._adaE(indexes = indexes, training = self.training, step = self.step))
 
     def _postprocess(self, embeddings: Tensor) -> Tensor:
         
@@ -189,6 +193,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
     def adaE_init(self, dataset, init_for_load_only=False):
         self.adae_config = self.config.options['AdaE_config']
         self.device = self.config.get("job.device")
+        self.DP = nn.Dropout(0.2)
         # 是否在bi_level的过程中：意味着不需要对embeddings进行赋值
         self.is_bilevel = False
         # dataset
@@ -212,14 +217,15 @@ class Multi_LookupEmbedder(KgeEmbedder):
             self._normalize_embeddings()
 
         if self.adae_config['train_mode'] in ['fix','rank','auto']:
+            self.AF = nn.Tanh().to(self.device)
             if self.adae_config['ali_way'] == 'ts':
                 self.BN = nn.LayerNorm(self.dim).to(self.device)
                 self.Selection = nn.Sequential(
-                    self.BN,
+                    self.BN
                     )
             elif self.adae_config['ali_way'] == 'zp':
                 pass
-            self.AF = nn.Tanh().to(self.device)
+            
 
         if self.adae_config['train_mode'] in ['original','fix']:
             # if train_mode is fix, the embedder must have Transform_layer class
@@ -229,7 +235,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 self.Transform_layer.weight.data = torch.eye(self.dim, self.dim)
         elif self.adae_config['train_mode'] in ['rank','auto']:
             if self.adae_config['train_mode'] == 'auto':
-                self.picker = Picker(self.config, dataset)
+                self.picker = Picker(self.config, dataset, self.dim)
             self.t_s = self.adae_config['t_s']*2
             self.choice_emb = torch.zeros(self.vocab_size, len(self.dim_list)).to(self.device)
             nn.init.uniform_(tensor=self.choice_emb)
@@ -238,9 +244,11 @@ class Multi_LookupEmbedder(KgeEmbedder):
             
             # aligment way init
             if self.adae_config['ali_way'] == 'ts':
+                self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],self.dim) for i in range(0,len(self.dim_list))])
+                # self.Transform_layer_list_1 =nn.ModuleList([nn.Linear(1024,self.dim) for i in range(0,len(self.dim_list))])
                 for i in range(0,len(self.dim_list)):
-                    self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],self.dim) for i in range(0,len(self.dim_list))])
                     nn.init.xavier_uniform_(self.Transform_layer_list[i].weight.data)
+                    # nn.init.xavier_uniform_(self.Transform_layer_list_1[i].weight.data)
             elif self.adae_config['ali_way'] == 'zp':
                 assert self.dim >= max(self.dim_list)
 
@@ -270,8 +278,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
             elif self.adae_config['train_mode'] == 'fix':
                 # fix means all dim is same
                 emb = self._embeddings(indexes)
-                emb = self.Transform_layer(emb)
-                # emb = self.BN(self.Transform_layer(emb))
+                # emb = self.Transform_layer(emb)
+                emb = self.DP(self.BN(self.Transform_layer(emb))) 
             elif self.adae_config['train_mode'] == 'rank':
                 pro = self._picker_rank(indexes)
                 emb = self._aligment_fix(indexes, probability=pro, ali_way=self.adae_config['ali_way'])
@@ -360,7 +368,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         output = []
         for i in range(0,len(self.dim_list)):    
             if  ali_way == 'ts':
-                output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+                output_pre = (self.Selection(self.Transform_layer_list_1[i](self.Transform_layer_list[i](emb[i]))))
             elif ali_way=='zp':
                  output_pre = self._zero_padding(emb[i])
             output.append(output_pre)
@@ -390,12 +398,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
 
         return emb
 class Picker(nn.Module):
-    def __init__( self, config: Config, dataset: Dataset) -> None:
+    def __init__( self, config: Config, dataset: Dataset, dim) -> None:
         # # father init
         super(Picker, self).__init__()
         self.adae_config = config.options['AdaE_config']
         self.device = config.get("job.device")
-        self.dim: int = config.options['multi_lookup_embedder']['dim']
+        self.dim: int = dim
         self.dim_list_size = len(self.adae_config['dim_list'])
         self.dim_bucket = int(self.adae_config['t_s']/8)
         
