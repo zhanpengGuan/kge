@@ -154,7 +154,7 @@ def main():
     else:
         dim = args1[2] if len(args1)>2 else 256
     lr = args1[3] if len(args1)>3 else "0.0042766"
-    dropout = args1[4] if len(args1)>4 else "0.5"
+    dropout = args1[4] if len(args1)>4 else "0.1"
     # now parse the arguments
     parser = create_parser(config)
     args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
@@ -246,7 +246,7 @@ def main():
     if args.command == "start":
         # set output folder last str
         train_mode = config.get("AdaE_config.train_mode")
-        last_str = train_mode
+        last_str = train_mode+"-multilayer"
 
         config.set('job.device', device)
         # config.set('AdaE_config.lr_trans', lr_trans)
@@ -266,7 +266,7 @@ def main():
             last_str +="-"+str(config.get("AdaE_config.ali_way"))
             last_str +="-"+str(config.get("multi_lookup_embedder.dim"))
             # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
-            last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+str(dropout)
+            last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+"-"+str(config.get('complex.entity_embedder.dropout'))
             
         if train_mode  in  ["fix"]:
             last_str+="-"+ str(config.get("multi_lookup_embedder.dim"))+"-noBN"

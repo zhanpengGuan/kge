@@ -244,7 +244,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             
             # aligment way init
             if self.adae_config['ali_way'] == 'ts':
-                self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],self.dim) for i in range(0,len(self.dim_list))])
+                self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],1024) for i in range(0,len(self.dim_list))])
                 # self.Transform_layer_list_1 =nn.ModuleList([nn.Linear(1024,self.dim) for i in range(0,len(self.dim_list))])
                 for i in range(0,len(self.dim_list)):
                     nn.init.xavier_uniform_(self.Transform_layer_list[i].weight.data)

@@ -148,6 +148,9 @@
   - kge_model.py
     score_spo, spo都是大小为[batch]
 # 遇到的bug和解决方案
+  ## 0
+  服务器显卡掉了
+  在user的~下面 sudo bash NVIDIA-...
   ## 1
   在AdaE这个子类中重写get_s_embedder，要注意此时AdaE没有entity_embedder，只有multi_entity_embedder
   在AdaE的父类Reciprocal_relation_model中，只有entity_embedder，这个来自于base_model:AdaE的_multi_entity_embedder
@@ -215,6 +218,7 @@
 
   conve跑了rank
   跑了auto
+  今晚上写完全部用这个的版本，加上三种分类
 
 
 

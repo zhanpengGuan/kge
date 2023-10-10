@@ -13,11 +13,10 @@
 # python kge/cli_debug.py models/fb15k-237/AdaE_conve.yaml cuda:6 '[256,256]' 0.0042766 &
 
 # python kge/cli_debug.py models/fb15k-237/AdaE_conve.yaml cuda:7 '[64,1024]' 0.0042766 &
-python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:6 '[64,1024]' 0.5 0.5 &
-wait
-python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:7 '[64,1024]' 0.5 0.3 &
-python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:5 '[64,1024]' 0.5 0.2 &
-python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:6 '[64,1024]' 0.5 0.1 &
+python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:4 '[64,1024]' 0.5 0.7 &
+python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:3 '[64,1024]' 0.5 0.8 &
+python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:7 '[64,1024]' 0.5 0.6 &
+python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:2 '[64,1024]' 0.5 0.9 &
 # 
 # python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:0 '[128,512]' 0.5 0.3 &
 # python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:3 '[128,512]' 0.5 0.2 &
