@@ -149,16 +149,18 @@ def main():
     # rank
     rank = True
     if rank:
-        dim_list = eval(str(args1[2])) if len(args1)>2 else [64,512]
+        dim_list = eval(str(args1[2])) if len(args1)>2 else [64,256]
     # fix
     else:
         dim = args1[2] if len(args1)>2 else 256
-    lr = args1[3] if len(args1)>3 else "0.0042766"
-    dropout = args1[4] if len(args1)>4 else "0.1"
+    lr = args1[3] if len(args1)>3 else "0.5"
+    dropout = args1[4] if len(args1)>4 else "0.5"
+
+    choice_list = eval(str(args1[5])) if len(args1)>5 else [0.2]
     # now parse the arguments
     parser = create_parser(config)
     args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
-
+    # args, unknown_args = parser.parse_known_args(("test?local/experiments/fb15k-237/20231012-055709-AdaE_rank-rank-noshare-[0.999]-[64, 256]-ts-nots256--256-0.5-0.5").split("?"))
    
     
     # If there where unknown args, add them to the parser and reparse. The correctness
@@ -246,7 +248,7 @@ def main():
     if args.command == "start":
         # set output folder last str
         train_mode = config.get("AdaE_config.train_mode")
-        last_str = train_mode+"-multilayer"
+        last_str = train_mode
 
         config.set('job.device', device)
         # config.set('AdaE_config.lr_trans', lr_trans)
@@ -255,6 +257,7 @@ def main():
         # rank
         if rank:
             config.set('AdaE_config.dim_list', dim_list)
+            config.set('AdaE_config.choice_list', choice_list)
         else:
             config.set("multi_lookup_embedder.dim",dim)
         # print(lr_trans)
@@ -262,8 +265,8 @@ def main():
         # time.sleep(10)
         if train_mode not in  ["original", "fix"]:
             last_str+="-share" if config.get("AdaE_config.share") == True else "-noshare"
-            last_str+="-"+ str(config.get("AdaE_config.dim_list"))
-            last_str +="-"+str(config.get("AdaE_config.ali_way"))
+            last_str+="-"+ str(config.get("AdaE_config.choice_list"))+"-"+str(config.get('AdaE_config.dim_list'))
+            last_str +="-"+str(config.get("AdaE_config.ali_way"))+"-nots256-"
             last_str +="-"+str(config.get("multi_lookup_embedder.dim"))
             # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
             last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+"-"+str(config.get('complex.entity_embedder.dropout'))

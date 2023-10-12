@@ -33,7 +33,7 @@ SLOT_STR = ["s", "p", "o"]
 
 
 
-class TrainingJobDarts( TrainingJob1vsAll, TrainingJobNegativeSampling,  TrainingJobKvsAll):
+class TrainingJobDarts( TrainingJobNegativeSampling, TrainingJob1vsAll,  TrainingJobKvsAll):
     def __init__(
         self, config, dataset, parent_job=None, model=None, forward_only=False
     ):
@@ -142,11 +142,15 @@ class TrainingJobDarts( TrainingJob1vsAll, TrainingJobNegativeSampling,  Trainin
                     triples_t = triples[:int(ratio*triples.shape[0])]
                     triples_v = triples[int(ratio*triples.shape[0]):]
                     for slot in [S, P, O]:
+                        negative_samples.append(self._sampler.sample(triples, slot))
                         negative_samples_t.append(self._sampler.sample(triples_t, slot))
                         negative_samples_v.append(self._sampler.sample(triples_v, slot))
 
                     # return {"triples": triples, "negative_samples": negative_samples,  "triples_t": triples_t, "triples_v": triples_v, "negative_samples_t": negative_samples_t, "negative_samples_v": negative_samples_v}
-                return [{"triples": triples_t, "negative_samples": negative_samples_t},  {"triples": triples_v, "negative_samples": negative_samples_v}]
+              
+                return [{"triples": triples, "negative_samples": negative_samples},  {"triples": triples_v, "negative_samples": negative_samples_v}]
+            
+                # return [{"triples": triples_t, "negative_samples": negative_samples_t},  {"triples": triples_v, "negative_samples": negative_samples_v}]
             return collate 
         elif mode== mode_list[1]:
              # create the collate function

@@ -80,9 +80,9 @@ class Dataset(Configurable):
         The frequency will be used for subsampling like word2vec
         
         '''
-        if  os.path.isfile(data_path+'rank_e.pt'):
-            rank_e = torch.load(data_path+'rank_e.pt')
-            rank_r = torch.load(data_path+'rank_r.pt')
+        if os.path.isfile(data_path+str(choice_list)+'rank_e.pt'):
+            rank_e = torch.load(data_path+str(choice_list)+'rank_e.pt')
+            rank_r = torch.load(data_path+str(choice_list)+'rank_r.pt')
         else: 
             count_e = torch.ones(nentity)
             count_r = torch.ones(nrelation)
@@ -92,7 +92,7 @@ class Dataset(Configurable):
                     count_r[relation] += 1
             # 降序count_e，分割0~10%，10%~50%，50%~100%的顺序为2,1，0，数字越大，频率越高
             freq_rank_e = sorted(count_e,reverse=True)
-            
+            8
             #r_从低到高，e.g. r_=[1,16,237,1023]
             r_ = []
             for i in reversed(choice_list):
@@ -119,8 +119,8 @@ class Dataset(Configurable):
                     rank_r[i] = len(choice_list) 
             
 
-            torch.save(rank_e, data_path+'rank_e.pt')
-            torch.save(rank_r, data_path+'rank_r.pt')
+            torch.save(rank_e, data_path+str(choice_list)+'rank_e.pt')
+            torch.save(rank_r, data_path+str(choice_list)+'rank_r.pt')
         return rank_e, rank_r
     
     def ensure_available(self, key):

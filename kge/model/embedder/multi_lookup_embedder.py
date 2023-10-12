@@ -244,7 +244,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             
             # aligment way init
             if self.adae_config['ali_way'] == 'ts':
-                self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],1024) for i in range(0,len(self.dim_list))])
+                self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],self.dim) for i in range(0,len(self.dim_list))])
                 # self.Transform_layer_list_1 =nn.ModuleList([nn.Linear(1024,self.dim) for i in range(0,len(self.dim_list))])
                 for i in range(0,len(self.dim_list)):
                     nn.init.xavier_uniform_(self.Transform_layer_list[i].weight.data)
@@ -301,7 +301,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         batch_size=len(indexes)
         # 上次的emb，离散选择
         label  =  self.rank[indexes].unsqueeze(-1)
-        pro = torch.zeros(batch_size,len(self.dim_list)).to(self.device).scatter_(1, label, 1)    
+        pro = torch.zeros((batch_size,len(self.dim_list)),device = self.device).scatter_(1, label, 1)    
 
         return pro
     
@@ -334,7 +334,10 @@ class Multi_LookupEmbedder(KgeEmbedder):
         for i in range(0,len(self.dim_list)):
             output_pre = -1
             if ali_way == 'ts':       
-                output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+                if self.dim_list[i]==self.dim:
+                    output_pre = (self.Selection((emb[i])))
+                else:
+                    output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
             elif ali_way=='zp':
                  output_pre = self._zero_padding(emb[i])
             output.append(output_pre)
@@ -378,7 +381,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         if if_training:
             Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
         else:
-            Gpro =  torch.zeros(probability.shape).to(self.device)
+            Gpro =  torch.zeros(probability.shape,device=self.device)
             Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
             Gpro = Gpro.scatter_(1, Gpro_index, 1) 
             
@@ -394,7 +397,13 @@ class Multi_LookupEmbedder(KgeEmbedder):
     def _zero_padding(self, emb):
         
         padding_size = abs(emb.shape[1]-self.dim)
-        emb = torch.cat((emb,torch.zeros(emb.shape[0], padding_size).to(self.device)),dim=1)
+        if self.space=='complex':
+            half_emb_size = int(emb.shape[1]/2)
+            half_padding_size = int(padding_size/2)
+            x = torch.zeros((emb.shape[0], half_padding_size),device=self.device)
+            emb = torch.cat((emb[:,:half_emb_size],x,emb[:,half_emb_size:],x),dim=1)
+        else:
+            emb = torch.cat((emb,torch.zeros((emb.shape[0], padding_size),device = self.device)),dim=1)
 
         return emb
 class Picker(nn.Module):
