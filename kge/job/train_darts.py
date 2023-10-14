@@ -33,7 +33,7 @@ SLOT_STR = ["s", "p", "o"]
 
 
 
-class TrainingJobDarts( TrainingJobNegativeSampling, TrainingJob1vsAll,  TrainingJobKvsAll):
+class TrainingJobDarts(TrainingJob1vsAll, TrainingJobKvsAll,  TrainingJobNegativeSampling,  ):
     def __init__(
         self, config, dataset, parent_job=None, model=None, forward_only=False
     ):
@@ -231,25 +231,51 @@ class TrainingJobDarts( TrainingJobNegativeSampling, TrainingJob1vsAll,  Trainin
                     ] = labels[start:end]
                     current_index += size
 
+
+                ratio = self.adae_config['ratio']
+                
+                
+                l_ratio = int(triples_batch.shape[0]) if self.adae_config['train_mode'] != 'auto' else int(ratio*triples_batch.shape[0])
+                queries_batch_t = queries_batch[:l_ratio]
+                queries_batch_v = queries_batch[l_ratio:]          
+                label_coords_batch_t = label_coords_batch[:l_ratio]    
+                label_coords_batch_v = label_coords_batch[l_ratio:] 
+                query_type_indexes_batch_t = query_type_indexes_batch[:l_ratio]
+                query_type_indexes_batch_v = query_type_indexes_batch[l_ratio:]
+                triples_batch_t = triples_batch[:l_ratio]
+                triples_batch_v  = triples_batch[l_ratio:]
+           
+                
+                
+               
+                
+
                 # all done
-                return {
-                    "queries": queries_batch,
-                    "label_coords": label_coords_batch,
-                    "query_type_indexes": query_type_indexes_batch,
-                    "triples": triples_batch,
-                }
+                return [{
+                    "queries": queries_batch_t,
+                    "label_coords": label_coords_batch_t,
+                    "query_type_indexes": query_type_indexes_batch_t,
+                    "triples": triples_batch_t,
+                },{
+                    "queries": queries_batch_v,
+                    "label_coords": label_coords_batch_v,
+                    "query_type_indexes": query_type_indexes_batch_v,
+                    "triples": triples_batch_v,
+                }]
 
             return collate
         elif mode== mode_list[2]:
             def collate(batch):
                 triples = self.dataset.split(self.train_split)[batch, :].long()
                 ratio = self.adae_config['ratio']
+                l_ratio = triples.shape[0] if self.adae_config['train_mode']!="auto" else int(ratio*triples.shape[0]) 
                 s_u = self.adae_config['s_u']
                 triples_t, triples_v = None, None
                 if s_u:
                     # split data for darts
-                    triples_t = triples[:int(ratio*triples.shape[0])]
-                    triples_v = triples[int(ratio*triples.shape[0]):]
+                    # triples_t = triples[:int(ratio*triples.shape[0])]
+                    triples_t = triples[:l_ratio]
+                    triples_v = triples[l_ratio:]
                 return  [{"triples": triples_t},{"triples": triples_v}]
             return collate
 

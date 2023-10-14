@@ -224,15 +224,20 @@ class Multi_LookupEmbedder(KgeEmbedder):
                     self.BN
                     )
             elif self.adae_config['ali_way'] == 'zp':
+                # self.BN = nn.LayerNorm(self.dim).to(self.device)
+                # self.Selection = nn.Sequential(
+                #     self.BN
+                #     ) 
                 pass
-            
 
         if self.adae_config['train_mode'] in ['original','fix']:
             # if train_mode is fix, the embedder must have Transform_layer class
             if self.adae_config['train_mode'] == 'fix':
                 self.Transform_layer = nn.Linear(self.dim, self.dim)
-                # nn.init.xavier_uniform_(self.Transform_layer.weight.data)
-                self.Transform_layer.weight.data = torch.eye(self.dim, self.dim)
+                self.Transform_layer1 = nn.Linear(self.dim, self.dim)
+                nn.init.xavier_uniform_(self.Transform_layer.weight.data)
+                nn.init.xavier_uniform_(self.Transform_layer1.weight.data)
+                # self.Transform_layer.weight.data = torch.eye(self.dim, self.dim)
         elif self.adae_config['train_mode'] in ['rank','auto']:
             if self.adae_config['train_mode'] == 'auto':
                 self.picker = Picker(self.config, dataset, self.dim)
@@ -245,7 +250,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             # aligment way init
             if self.adae_config['ali_way'] == 'ts':
                 self.Transform_layer_list =nn.ModuleList([nn.Linear(self.dim_list[i],self.dim) for i in range(0,len(self.dim_list))])
-                # self.Transform_layer_list_1 =nn.ModuleList([nn.Linear(1024,self.dim) for i in range(0,len(self.dim_list))])
+                # self.Transform_layer_list_1 =nn.ModuleList([nn.Linear(self.dim,self.dim) for i in range(0,len(self.dim_list))])
                 for i in range(0,len(self.dim_list)):
                     nn.init.xavier_uniform_(self.Transform_layer_list[i].weight.data)
                     # nn.init.xavier_uniform_(self.Transform_layer_list_1[i].weight.data)
@@ -279,7 +284,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 # fix means all dim is same
                 emb = self._embeddings(indexes)
                 # emb = self.Transform_layer(emb)
-                emb = self.DP(self.BN(self.Transform_layer(emb))) 
+                emb = self.BN(self.Transform_layer1((self.BN(torch.relu((self.Transform_layer(emb)))))))
             elif self.adae_config['train_mode'] == 'rank':
                 pro = self._picker_rank(indexes)
                 emb = self._aligment_fix(indexes, probability=pro, ali_way=self.adae_config['ali_way'])
@@ -334,8 +339,9 @@ class Multi_LookupEmbedder(KgeEmbedder):
         for i in range(0,len(self.dim_list)):
             output_pre = -1
             if ali_way == 'ts':       
-                if self.dim_list[i]==self.dim:
-                    output_pre = (self.Selection((emb[i])))
+                # if self.dim_list[i]==self.dim:
+                if i==1:
+                    output_pre = emb[i]
                 else:
                     output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
             elif ali_way=='zp':
@@ -371,7 +377,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         output = []
         for i in range(0,len(self.dim_list)):    
             if  ali_way == 'ts':
-                output_pre = (self.Selection(self.Transform_layer_list_1[i](self.Transform_layer_list[i](emb[i]))))
+                output_pre = (self.Selection(self.Transform_layer_list_1[i](torch.relu(self.Transform_layer_list[i](emb[i])))))
             elif ali_way=='zp':
                  output_pre = self._zero_padding(emb[i])
             output.append(output_pre)
@@ -398,10 +404,18 @@ class Multi_LookupEmbedder(KgeEmbedder):
         
         padding_size = abs(emb.shape[1]-self.dim)
         if self.space=='complex':
-            half_emb_size = int(emb.shape[1]/2)
-            half_padding_size = int(padding_size/2)
-            x = torch.zeros((emb.shape[0], half_padding_size),device=self.device)
-            emb = torch.cat((emb[:,:half_emb_size],x,emb[:,half_emb_size:],x),dim=1)
+            if padding_size==0:
+                DP = nn.Dropout(0.0)
+                return DP(emb)
+            else:
+                half_emb_size = int(emb.shape[1]/2)
+                half_padding_size = int(padding_size/2)
+                x = torch.zeros((emb.shape[0], half_padding_size),device=self.device)
+                emb = torch.cat((emb[:,:half_emb_size],x,emb[:,half_emb_size:],x),dim=1)
+                DP = nn.Dropout(0.0)
+                return DP(emb)
+            
+
         else:
             emb = torch.cat((emb,torch.zeros((emb.shape[0], padding_size),device = self.device)),dim=1)
 

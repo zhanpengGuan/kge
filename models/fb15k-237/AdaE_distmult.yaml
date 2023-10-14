@@ -1,24 +1,23 @@
-
-import:
-- AdaE
-- complex
-- multi_lookup_embedder
-complex:
-  entity_embedder:
-    type: multi_lookup_embedder
-    dropout: 0.5
-    regularize_weight: 1.3408200403806817e-08
-  relation_embedder:
-    type: multi_lookup_embedder
-    dropout: 0.22684140529516872
-    regularize_weight: 8.266519211068944e-14
 dataset:
   name: fb15k-237
+distmult:
+  entity_embedder:
+    type: multi_lookup_embedder
+    dropout: 0.4196834675552332
+    regularize_weight: 2.816637953889144e-09
+  relation_embedder:
+    type: multi_lookup_embedder
+    dropout: 0.40971036404279193
+    regularize_weight: 8.19925611568694e-15
 eval:
   batch_size: 256
   metrics_per:
     relation_type: true
   trace_level: example
+import:
+- distmult
+- AdaE
+- multi_lookup_embedder
 
 multi_lookup_embedder:
   dim: 256
@@ -26,9 +25,9 @@ multi_lookup_embedder:
   initialize_args:
     normal_:
       mean: 0.0
-      std: 0.5592429029559286
+      std: 0.04037805388365049
     uniform_:
-      a: -0.8328168489829233
+      a: -0.9352212163936202
     xavier_normal_:
       gain: 1.0
     xavier_uniform_:
@@ -37,17 +36,15 @@ multi_lookup_embedder:
     p: 3
     weighted: true
 model: AdaE
-
 negative_sampling:
   implementation: batch
   num_samples:
-    o: 1000
+    o: 402
     p: -1
-    s: 529
-
+    s: 255
 AdaE:
   base_model:
-    type: complex
+    type: distmult
 train:
   auto_correct: true
   batch_size: 1024
@@ -56,11 +53,11 @@ train:
   lr_scheduler_args:
     factor: 0.95
     mode: max
-    patience: 7
+    patience: 6
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.18255429345236635
+    lr: 0.15953749294870845
   type: darts
 valid:
   early_stopping:
@@ -68,14 +65,11 @@ valid:
       epochs: 50
       metric_value: 0.05
     patience: 10
-  every: 5
-job.device:
-  cuda:0
 AdaE_config:
   adae: True
   bi-level: False
   share: False
-  type: '1vsall'
+  type: 'ng_sample'
   ali_way: 'ts'
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'rank'

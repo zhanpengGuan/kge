@@ -74,6 +74,9 @@ job.device:
 AdaE_config:
   adae: True
   bi-level: False
+  share: False
+  type: '1vsall'
+  ali_way: 'ts'
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'fix'
   dim_list: [64,256]
