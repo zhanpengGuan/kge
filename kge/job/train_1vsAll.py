@@ -38,6 +38,13 @@ class TrainingJob1vsAll(TrainingJob):
             pin_memory=self.config.get("train.pin_memory"),
         )
 
+    def _get_collate_fun(self):
+            def collate(batch):
+                triples = self.dataset.split(self.train_split)[batch, :].long()
+               
+                
+                return  {"triples": triples}
+            return collate
 
     def _prepare_batch(
         self, batch_index, batch, result: TrainingJob._ProcessBatchResult

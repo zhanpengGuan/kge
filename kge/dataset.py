@@ -80,7 +80,7 @@ class Dataset(Configurable):
         The frequency will be used for subsampling like word2vec
         
         '''
-        if os.path.isfile(data_path+str(choice_list)+'rank_e.pt'):
+        if  os.path.isfile(data_path+str(choice_list)+'rank_e.pt'):
             rank_e = torch.load(data_path+str(choice_list)+'rank_e.pt')
             rank_r = torch.load(data_path+str(choice_list)+'rank_r.pt')
         else: 

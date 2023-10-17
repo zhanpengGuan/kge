@@ -143,20 +143,20 @@ def main():
     config = Config() 
     #
     args1 = sys.argv[1:]
-    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_fix.yaml"
+    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_auto.yaml"
     device = args1[1] if len(args1)>1 else "cuda:0"
     # other hyperparameters
     # rank
-    rank = False
+    rank = True
     if rank:
-        dim_list = eval(str(args1[2])) if len(args1)>2 else [256,1024]
+        dim_list = eval(str(args1[2])) if len(args1)>2 else [128,256,1024]
     # fix
     else:
         dim = args1[2] if len(args1)>2 else 256
     lr = args1[3] if len(args1)>3 else "0.5"
     dropout = args1[4] if len(args1)>4 else "0.5"
 
-    choice_list = eval(str(args1[5])) if len(args1)>5 else [0.2]
+    choice_list = eval(str(args1[5])) if len(args1)>5 else [0.1,0.2,0.3,0.4,0.5]
     # now parse the arguments
     parser = create_parser(config)
     args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
@@ -257,7 +257,7 @@ def main():
         # rank
         if rank:
             config.set('AdaE_config.dim_list', dim_list)
-            config.set("multi_lookup_embedder.dim",dim_list[-1])
+            # config.set("multi_lookup_embedder.dim",dim_list[-1])
             config.set('AdaE_config.choice_list', choice_list)
         else:
             config.set("multi_lookup_embedder.dim",dim)
@@ -267,7 +267,7 @@ def main():
         if train_mode not in  ["original", "fix"]:
             last_str+="-share" if config.get("AdaE_config.share") == True else "-noshare"
             last_str+="-"+ str(config.get("AdaE_config.choice_list"))+"-"+str(config.get('AdaE_config.dim_list'))
-            last_str +="-"+str(config.get("AdaE_config.ali_way"))+"1vsall-"
+            last_str +="-"+str(config.get("AdaE_config.ali_way"))+"-LN-1vsall-unrolled-"
             last_str +="-"+str(config.get("multi_lookup_embedder.dim"))
             # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
             last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+"-"+str(config.get("complex"+'.entity_embedder.dropout'))

@@ -205,8 +205,13 @@ class TrainingJob(TrainingOrEvaluationJob):
             self.config.log("Starting epoch {}...".format(self.epoch))
             trace_entry = self.run_epoch()
             self.config.log("Finished epoch {}.".format(self.epoch))
-
-            # update model metadata
+            self.config.log("\n")
+            
+            for m in range(len(self.adae_config['dim_list'])):
+                self.config.log(
+                        "dim={} nums={}".format(self.adae_config['dim_list'][m],
+                sum(torch.argmax(self.model._base_model._entity_embedder.choice_emb, dim =-1)==m)))
+            # update model metadata     
             self.model.meta["train_job_trace_entry"] = self.trace_entry
             self.model.meta["train_epoch"] = self.epoch
             self.model.meta["train_config"] = self.config

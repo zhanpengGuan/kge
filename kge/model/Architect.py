@@ -125,6 +125,7 @@ class Architect(object):
   #计算公式八(dαLtrain(w+,α)-dαLtrain(w-,α))/(2*epsilon)   其中w+=w+dw'Lval(w',α)*epsilon w- = w-dw'Lval(w',α)*epsilon
   def _hessian_vector_product(self, vector, batch_index, batch_t, r=1e-2): # vector就是dw'Lval(w',α)
     R = r / _concat(vector).norm() #epsilon
+    # R = 0.01
 
     #dαLtrain(w+,α)
     for p, v in zip(self.KGE_parameters(self.model), vector):
@@ -157,11 +158,13 @@ class Architect(object):
     '''
     for name, param in model.named_parameters(recurse=recurse):
       if  not (name.startswith('_base_model._entity_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
-        yield param
+        
+          yield param
   def nKGE_parameters(self,model,recurse: bool = True):
     '''
     a named parameter filter for KGE parmeters
     '''
     for name, param in model.named_parameters(recurse=recurse):
       if  not (name.startswith('_base_model._entity_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
-        yield name, param
+        
+          yield name, param

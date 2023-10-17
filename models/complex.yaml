@@ -16,7 +16,7 @@ import:
 - reciprocal_relations_model
 - complex
 lookup_embedder:
-  dim: 512
+  dim: 28
   initialize: uniform_
   initialize_args:
     normal_:
@@ -54,7 +54,7 @@ train:
   max_epochs: 400
   optimizer_args:
     lr: 0.18255429345236635
-  type: negative_sampling
+  type: 1vsAll
 valid:
   early_stopping:
     min_threshold:

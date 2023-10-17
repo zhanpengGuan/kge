@@ -220,15 +220,17 @@ class Multi_LookupEmbedder(KgeEmbedder):
             self.AF = nn.Tanh().to(self.device)
             if self.adae_config['ali_way'] == 'ts':
                 self.BN = nn.LayerNorm(self.dim).to(self.device)
+                # self.BN = nn.BatchNorm1d(self.dim).to(self.device)
                 self.Selection = nn.Sequential(
                     self.BN
                     )
             elif self.adae_config['ali_way'] == 'zp':
-                # self.BN = nn.LayerNorm(self.dim).to(self.device)
-                # self.Selection = nn.Sequential(
-                #     self.BN
-                #     ) 
-                pass
+                # self.BN = nn.BatchNorm1d(self.dim).to(self.device)
+                self.BN = nn.LayerNorm(self.dim).to(self.device)
+                self.Selection = nn.Sequential(
+                    self.BN
+                    ) 
+                
 
         if self.adae_config['train_mode'] in ['original','fix']:
             # if train_mode is fix, the embedder must have Transform_layer class
@@ -241,8 +243,10 @@ class Multi_LookupEmbedder(KgeEmbedder):
         elif self.adae_config['train_mode'] in ['rank','auto']:
             if self.adae_config['train_mode'] == 'auto':
                 self.picker = Picker(self.config, dataset, self.dim)
+                # self.picker_low = Picker(self.config, dataset, self.dim)
             self.t_s = self.adae_config['t_s']*2
             self.choice_emb = torch.zeros(self.vocab_size, len(self.dim_list)).to(self.device)
+            #随机选择
             nn.init.uniform_(tensor=self.choice_emb)
 
             
@@ -315,7 +319,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
         picker, when training
         """          
         input_h =  torch.cat((self._embeddings(indexes).detach(), self.picker.bucket(self.rank[indexes])),dim = 1)
-        pro = F.softmax(self.picker(input_h),dim=-1)
+        o = self.picker(input_h)
+        pro = F.softmax(o,dim=-1)
 
         return pro
     def _picker_fix(self, indexes):
@@ -340,12 +345,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
             output_pre = -1
             if ali_way == 'ts':       
                 # if self.dim_list[i]==self.dim:
-                if i==1:
+                if i==0:
                     output_pre = emb[i]
                 else:
                     output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
             elif ali_way=='zp':
-                 output_pre = self._zero_padding(emb[i])
+                 output_pre = self.BN(self._zero_padding(emb[i]))
             output.append(output_pre)
         # 堆叠以便于计算
         emb = torch.stack(output, dim=1)
@@ -375,11 +380,16 @@ class Multi_LookupEmbedder(KgeEmbedder):
             else:    
                 emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
         output = []
-        for i in range(0,len(self.dim_list)):    
+        for i in range(0,len(self.dim_list)): 
+            output_pre = -1   
             if  ali_way == 'ts':
-                output_pre = (self.Selection(self.Transform_layer_list_1[i](torch.relu(self.Transform_layer_list[i](emb[i])))))
+                # if i==0:
+                #     output_pre = emb[i]
+                # else:
+                output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+               
             elif ali_way=='zp':
-                 output_pre = self._zero_padding(emb[i])
+                 output_pre = self.Selection(self._zero_padding(emb[i]))
             output.append(output_pre)
         # 堆叠以便于计算
         head_s = torch.stack(output, dim=1)
@@ -428,30 +438,30 @@ class Picker(nn.Module):
         self.device = config.get("job.device")
         self.dim: int = dim
         self.dim_list_size = len(self.adae_config['dim_list'])
-        self.dim_bucket = int(self.adae_config['t_s']/8)
+        self.dim_bucket = int(self.dim)
         
         self.FC1 = nn.Linear(self.dim_bucket+self.dim,128).to(self.device)
-        self.FC2 = nn.Linear(128,64).to(self.device)
-        self.FC3 = nn.Linear(64,self.dim_list_size).to(self.device)
+        self.FC2 = nn.Linear(128,self.dim_list_size).to(self.device)
+        # self.FC3 = nn.Linear(64,self.dim_list_size).to(self.device)
         nn.init.xavier_uniform_(self.FC1.weight.data)
         nn.init.xavier_uniform_(self.FC2.weight.data)
-        nn.init.xavier_uniform_(self.FC3.weight.data)  
+        # nn.init.xavier_uniform_(self.FC3.weight.data)  
         self.Picker = nn.Sequential(
             self.FC1,
             nn.Dropout(0.5),
             nn.ReLU(),
             self.FC2,
-            nn.Dropout(0.5),
-            nn.ReLU(),
-            self.FC3
+            # nn.Dropout(0.5),
+            # nn.ReLU(),
+            # self.FC3
         ) 
     
         # bucket emb
-        self.k = self.dim_list_size
+        self.k = len(self.adae_config['choice_list'])+1
         self.bucket = nn.Embedding(self.k, self.dim_bucket).to(self.device)
     #
     def forward(self, input):
         # 上次的emb，离散选择
-        pro = F.softmax(self.Picker(input),dim=-1)
+        pro = self.Picker(input)
 
         return pro

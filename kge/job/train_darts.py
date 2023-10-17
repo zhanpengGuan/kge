@@ -33,7 +33,7 @@ SLOT_STR = ["s", "p", "o"]
 
 
 
-class TrainingJobDarts(TrainingJob1vsAll, TrainingJobKvsAll,  TrainingJobNegativeSampling,  ):
+class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJobKvsAll,    ):
     def __init__(
         self, config, dataset, parent_job=None, model=None, forward_only=False
     ):
@@ -46,6 +46,8 @@ class TrainingJobDarts(TrainingJob1vsAll, TrainingJobKvsAll,  TrainingJobNegativ
         self.parent = [TrainingJobNegativeSampling,  TrainingJob1vsAll, TrainingJobKvsAll]
         self.mode_list = ['ng_sample', '1vsall', 'kvsall']
         self.mode = self.adae_config['type']
+        #为了划分数据集
+        self.batch_index = -1
         if not self.is_forward_only:
             if self.adae_config['train_mode'] in ['original']:
                 pass
@@ -80,8 +82,8 @@ class TrainingJobDarts(TrainingJob1vsAll, TrainingJobKvsAll,  TrainingJobNegativ
             elif self.adae_config['train_mode'] in ['auto']:
                 picker_e = self.model._entity_embedder.picker
                 picker_r = self.model._relation_embedder.picker
-                params_p = list(picker_e.bucket.parameters()) + list(picker_e.FC1.parameters())+list(picker_e.FC2.parameters())+list(picker_e.FC3.parameters())+list(picker_r.bucket.parameters()) + list(picker_r.FC1.parameters())+list(picker_r.FC2.parameters())+list(picker_r.FC3.parameters())
-                params_p_id = list(map( id,picker_e.bucket.parameters())) + list(map( id,picker_e.FC1.parameters()))+list(map( id,picker_e.FC2.parameters()))+list(map( id,picker_e.FC3.parameters()))+list(map( id,picker_r.bucket.parameters())) + list(map( id,picker_r.FC1.parameters()))+list(map( id,picker_r.FC2.parameters()))+list(map( id,picker_r.FC3.parameters()))
+                params_p = list(picker_e.bucket.parameters()) + list(picker_e.FC1.parameters())+list(picker_e.FC2.parameters())+list(picker_r.bucket.parameters()) + list(picker_r.FC1.parameters())+list(picker_r.FC2.parameters())
+                params_p_id = list(map( id,picker_e.bucket.parameters())) + list(map( id,picker_e.FC1.parameters()))+list(map( id,picker_e.FC2.parameters()))+list(map( id,picker_r.bucket.parameters())) + list(map( id,picker_r.FC1.parameters()))+list(map( id,picker_r.FC2.parameters()))
 
                 # picker =  {'e':picker_e,'r':picker_r}
                 # learnable_parameters = [param for name, param in vars(picker).items() if isinstance(param, torch.nn.Parameter) and param.requires_grad]
@@ -101,7 +103,7 @@ class TrainingJobDarts(TrainingJob1vsAll, TrainingJobKvsAll,  TrainingJobNegativ
 
                 
                 self.optimizer_p = opt(
-                    [{'params':params_p,'name':'default'}],  **config.get("train.optimizer.default.args")
+                    [{'params':params_p,'name':'default'}],  lr =  self.adae_config['lr_p']
                         ) #用来更新theta的optimizer
                 self.kge_lr_scheduler_p = KgeLRScheduler(config, self.optimizer_p)
                 self._lr_warmup = self.config.get("train.lr_warmup")
@@ -271,11 +273,15 @@ class TrainingJobDarts(TrainingJob1vsAll, TrainingJobKvsAll,  TrainingJobNegativ
                 l_ratio = triples.shape[0] if self.adae_config['train_mode']!="auto" else int(ratio*triples.shape[0]) 
                 s_u = self.adae_config['s_u']
                 triples_t, triples_v = None, None
-                if s_u:
+                #因为loader的要加载完再加一
+                if (self.batch_index+1)%s_u==0:
                     # split data for darts
                     # triples_t = triples[:int(ratio*triples.shape[0])]
                     triples_t = triples[:l_ratio]
                     triples_v = triples[l_ratio:]
+                else:
+                    triples_t = triples
+                    
                 return  [{"triples": triples_t},{"triples": triples_v}]
             return collate
 
@@ -313,6 +319,7 @@ class TrainingJobDarts(TrainingJob1vsAll, TrainingJobKvsAll,  TrainingJobNegativ
 
         # process each batch
         for batch_index, batch in enumerate(self.loader):
+            self.batch_index = batch_index
             batch_t, batch_v = batch[0], batch[1]
             # create initial batch trace (yet incomplete)
             self.current_trace["batch"] = {
@@ -345,13 +352,18 @@ class TrainingJobDarts(TrainingJob1vsAll, TrainingJobKvsAll,  TrainingJobNegativ
                             
                             #对α进行更新，对应伪代码的第一步，也就是用公式6
                             if batch_index % self.adae_config['s_u'] == 0:
-                                self.architect.step(batch_index, batch_t, batch_v, self.adae_config['lr_p'], self.optimizer)
+                                self.architect.step(batch_index, batch_t, batch_v, self.adae_config['lr_p'], self.optimizer,self.adae_config['urolled'])
+                            
+                       
+
+                           
                             
                         if not self.is_forward_only:
                             self.optimizer.zero_grad()
                         batch_result: TrainingJob._ProcessBatchResult = self._process_batch(
                             batch_index, batch_t
                         )
+                        
                         done = True
                     except RuntimeError as e:
                         # is it a CUDA OOM exception and are we allowed to reduce the
@@ -501,7 +513,7 @@ class TrainingJobDarts(TrainingJob1vsAll, TrainingJobKvsAll,  TrainingJobNegativ
             forward_time += batch_forward_time
             backward_time += batch_backward_time
             optimizer_time += batch_optimizer_time
-
+        self.batch_index = -1
         # all done; now trace and log
         epoch_time += time.time()
         self.config.print("\033[2K\r", end="", flush=True)  # clear line and go back
@@ -564,6 +576,7 @@ class TrainingJobDarts(TrainingJob1vsAll, TrainingJobKvsAll,  TrainingJobNegativ
                 "optimizer_p_state_dict": self.optimizer_p.state_dict(),
                 "lr_scheduler_state_dict": self.kge_lr_scheduler.state_dict(),
                 "lr_scheduler_p_state_dict": self.kge_lr_scheduler_p.state_dict(),
+                "choice_emb": self.model._base_model._entity_embedder.choice_emb,
                 "job_id": self.job_id,
             }
         train_checkpoint = self.config.save_to(train_checkpoint)
