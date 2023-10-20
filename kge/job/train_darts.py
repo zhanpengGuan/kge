@@ -80,38 +80,42 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
             elif self.adae_config['train_mode'] in ['rank']:
                 pass
             elif self.adae_config['train_mode'] in ['auto']:
-                picker_e = self.model._entity_embedder.picker
-                picker_r = self.model._relation_embedder.picker
-                params_p = list(picker_e.bucket.parameters()) + list(picker_e.FC1.parameters())+list(picker_e.FC2.parameters())+list(picker_r.bucket.parameters()) + list(picker_r.FC1.parameters())+list(picker_r.FC2.parameters())
-                params_p_id = list(map( id,picker_e.bucket.parameters())) + list(map( id,picker_e.FC1.parameters()))+list(map( id,picker_e.FC2.parameters()))+list(map( id,picker_r.bucket.parameters())) + list(map( id,picker_r.FC1.parameters()))+list(map( id,picker_r.FC2.parameters()))
+               
+                # picker_e = self.model._entity_embedder.picker
+                # picker_r = self.model._relation_embedder.picker
+                # picker_e_low = self.model._entity_embedder.picker_low
+                # picker_r_low = self.model._relation_embedder.picker_low
+                # params_p = list(picker_e.bucket.parameters()) + list(picker_e.FC1.parameters())+list(picker_e.FC2.parameters())+list(picker_r.bucket.parameters()) + list(picker_r.FC1.parameters())+list(picker_r.FC2.parameters())+list(picker_e_low.bucket.parameters()) + list(picker_e_low.FC1.parameters())+list(picker_e_low.FC2.parameters())+list(picker_r_low.bucket.parameters()) + list(picker_r_low.FC1.parameters())+list(picker_r_low.FC2.parameters())
 
-                # picker =  {'e':picker_e,'r':picker_r}
-                # learnable_parameters = [param for name, param in vars(picker).items() if isinstance(param, torch.nn.Parameter) and param.requires_grad]
-                embeddings_params_e = list( map( id, self.model._base_model._entity_embedder._embeddings.parameters() ) )
-                embeddings_params_r = list( map( id, self.model._base_model._relation_embedder._embeddings.parameters() ) )
+                # params_p_id = list(map( id,picker_e.bucket.parameters())) + list(map( id,picker_e.FC1.parameters()))+list(map( id,picker_e.FC2.parameters()))+list(map( id,picker_r.bucket.parameters())) + list(map( id,picker_r.FC1.parameters()))+list(map( id,picker_r.FC2.parameters()))+ list(map( id,picker_e_low.bucket.parameters())) + list(map( id,picker_e_low.FC1.parameters()))+list(map( id,picker_e_low.FC2.parameters()))+list(map( id,picker_r_low.bucket.parameters())) + list(map( id,picker_r_low.FC1.parameters()))+list(map( id,picker_r_low.FC2.parameters()))
 
-                base_params = filter(lambda p: id(p) not in embeddings_params_r+embeddings_params_e+params_p_id, self.model.parameters())
+                # # picker =  {'e':picker_e,'r':picker_r}
+                # # learnable_parameters = [param for name, param in vars(picker).items() if isinstance(param, torch.nn.Parameter) and param.requires_grad]
+                # embeddings_params_e = list( map( id, self.model._base_model._entity_embedder._embeddings.parameters() ) )
+                # embeddings_params_r = list( map( id, self.model._base_model._relation_embedder._embeddings.parameters() ) )
+
+                # base_params = filter(lambda p: id(p) not in embeddings_params_r+embeddings_params_e+params_p_id, self.model.parameters())
 
 
-                opt = getattr(torch.optim, config.get("train.optimizer.default.type"))
-                self.optimizer = opt(
-                    [{'params':base_params}], **config.get("train.optimizer.default.args") ) #用来更新theta的optimizer
-                self.kge_lr_scheduler = KgeLRScheduler(config, self.optimizer)
-                self._lr_warmup = self.config.get("train.lr_warmup")
-                for group in self.optimizer.param_groups:
-                    group["initial_lr"]=group["lr"]
+                # opt = getattr(torch.optim, config.get("train.optimizer.default.type"))
+                # self.optimizer = opt(
+                #     [{'params':base_params}], **config.get("train.optimizer.default.args") ) #用来更新theta的optimizer
+                # self.kge_lr_scheduler = KgeLRScheduler(config, self.optimizer)
+                # self._lr_warmup = self.config.get("train.lr_warmup")
+                # for group in self.optimizer.param_groups:
+                #     group["initial_lr"]=group["lr"]
 
                 
-                self.optimizer_p = opt(
-                    [{'params':params_p,'name':'default'}],  lr =  self.adae_config['lr_p']
-                        ) #用来更新theta的optimizer
-                self.kge_lr_scheduler_p = KgeLRScheduler(config, self.optimizer_p)
-                self._lr_warmup = self.config.get("train.lr_warmup")
-                for group in self.optimizer_p.param_groups:
-                    group["initial_lr"]=group["lr"]
+                # self.optimizer_p = opt(
+                #     [{'params':params_p,'name':'default'}],  lr =  self.adae_config['lr_p']
+                #         ) #用来更新theta的optimizer
+                # self.kge_lr_scheduler_p = KgeLRScheduler(config, self.optimizer_p)
+                # self._lr_warmup = self.config.get("train.lr_warmup")
+                # for group in self.optimizer_p.param_groups:
+                #     group["initial_lr"]=group["lr"]
 
-                self.architect = Architect(self.model, params_p, self.optimizer_p, self, self.adae_config)
-    
+                # self.architect = Architect(self.model, params_p, self.optimizer_p, self, self.adae_config)
+                pass
 
 
     def _get_collate_fun(self):
@@ -351,7 +355,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                         if self.adae_config['train_mode'] in ['auto']:   
                             
                             #对α进行更新，对应伪代码的第一步，也就是用公式6
-                            if batch_index % self.adae_config['s_u'] == 0:
+                            if batch_index % self.adae_config['s_u'] == 121:
                                 self.architect.step(batch_index, batch_t, batch_v, self.adae_config['lr_p'], self.optimizer,self.adae_config['urolled'])
                             
                        
@@ -573,9 +577,9 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                 "valid_trace": self.valid_trace,
                 "model": self.model.save(),
                 "optimizer_state_dict": self.optimizer.state_dict(),
-                "optimizer_p_state_dict": self.optimizer_p.state_dict(),
+                # "optimizer_p_state_dict": self.optimizer_p.state_dict(),
                 "lr_scheduler_state_dict": self.kge_lr_scheduler.state_dict(),
-                "lr_scheduler_p_state_dict": self.kge_lr_scheduler_p.state_dict(),
+                # "lr_scheduler_p_state_dict": self.kge_lr_scheduler_p.state_dict(),
                 "choice_emb": self.model._base_model._entity_embedder.choice_emb,
                 "job_id": self.job_id,
             }

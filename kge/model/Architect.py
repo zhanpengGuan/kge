@@ -56,15 +56,19 @@ class Architect(object):
 
     self.optimizer.zero_grad()#清除上一步的残余更新参数值
     if  unrolled:#用论文的提出的方法
+        
         self._backward_step_unrolled(batch_index, batch_t, batch_v, eta, network_optimizer,mode)
     else: #不用论文提出的bilevel optimization，只是简单的对α求导
+        
         self._backward_step(batch_index, batch_v)
+        
     
     self.optimizer.step() #应用梯度：根据反向传播得到的梯度进行参数的更新， 这些parameters的梯度是由loss.backward()得到的，optimizer存了这些parameters的指针
                           #因为这个optimizer是针对alpha的优化器，所以他存的都是alpha的参数
     self.model._entity_embedder.is_bilevel = False
     self.model._relation_embedder.is_bilevel = False
     return self.optimizer
+
 
   def _backward_step(self, batch_index, batch_v):
     

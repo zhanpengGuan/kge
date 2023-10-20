@@ -144,7 +144,7 @@ def main():
     
     args1 = sys.argv[1:]
    
-    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_auto.yaml"
+    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_rank.yaml"
     s_u = args1[1] if len(args1)>1 else "2"
     device = args1[2] if len(args1)>2 else "cuda:0"
  

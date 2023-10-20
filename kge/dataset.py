@@ -80,9 +80,13 @@ class Dataset(Configurable):
         The frequency will be used for subsampling like word2vec
         
         '''
-        if  os.path.isfile(data_path+str(choice_list)+'rank_e.pt'):
-            rank_e = torch.load(data_path+str(choice_list)+'rank_e.pt')
-            rank_r = torch.load(data_path+str(choice_list)+'rank_r.pt')
+        
+
+        if  os.path.isfile(data_path+'/'+str(choice_list)+'rank_e.pt'):
+            rank_e = torch.load(data_path+'/'+str(choice_list)+'rank_e.pt')
+            rank_r = torch.load(data_path+'/'+str(choice_list)+'rank_r.pt')
+            count_e = torch.load(data_path+'/'+str(choice_list)+'counte.pt')
+            pivot = torch.load(data_path+'/'+str(choice_list)+'pivot.pt' )
         else: 
             count_e = torch.ones(nentity)
             count_r = torch.ones(nrelation)
@@ -92,11 +96,22 @@ class Dataset(Configurable):
                     count_r[relation] += 1
             # 降序count_e，分割0~10%，10%~50%，50%~100%的顺序为2,1，0，数字越大，频率越高
             freq_rank_e = sorted(count_e,reverse=True)
-            8
-            #r_从低到高，e.g. r_=[1,16,237,1023]
+            pivot = freq_rank_e[int(len(count_e)*0.2)]
             r_ = []
-            for i in reversed(choice_list):
-                r_.append(freq_rank_e[int(len(count_e)*i)])
+            if choice_list[0] == -1:
+                r_ = torch.unique(torch.tensor(freq_rank_e))
+                # print(len(r_))
+                r_ = reversed(r_)
+                torch.save(freq_rank_e, data_path+"/"+str(choice_list)+'rank_e[-1].pt')
+            else:
+                #r_从低到高 ，e.g. r_=[1,16,237,1023]
+                for i in reversed(choice_list):
+                    r_.append(freq_rank_e[int(len(count_e)*i)])
+
+
+
+
+
             rank_e = torch.tensor([0 for i in range(nentity)])
             for i in range(nentity):
                 for j in r_:
@@ -119,9 +134,11 @@ class Dataset(Configurable):
                     rank_r[i] = len(choice_list) 
             
 
-            torch.save(rank_e, data_path+str(choice_list)+'rank_e.pt')
-            torch.save(rank_r, data_path+str(choice_list)+'rank_r.pt')
-        return rank_e, rank_r
+            torch.save(rank_e, data_path+'/'+str(choice_list)+'rank_e.pt')
+            torch.save(rank_r, data_path+'/'+str(choice_list)+'rank_r.pt')
+            torch.save(count_e, data_path+'/'+str(choice_list)+'counte.pt')
+            torch.save(pivot,data_path+'/'+str(choice_list)+'pivot.pt' )
+        return rank_e, rank_r, count_e, pivot
     
     def ensure_available(self, key):
         """Checks if key can be loaded"""

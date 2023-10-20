@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 import traceback
+import torch
 import yaml
 
 from kge import Dataset
@@ -143,13 +144,13 @@ def main():
     config = Config() 
     #
     args1 = sys.argv[1:]
-    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_auto.yaml"
+    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_rank.yaml"
     device = args1[1] if len(args1)>1 else "cuda:0"
     # other hyperparameters
     # rank
     rank = True
     if rank:
-        dim_list = eval(str(args1[2])) if len(args1)>2 else [128,128]
+        dim_list = eval(str(args1[2])) if len(args1)>2 else [128,256,1024]
         # dim = dim_list[-1]
     # fix
     else:
@@ -157,8 +158,8 @@ def main():
     lr = args1[3] if len(args1)>3 else "0.5"
     dropout = args1[4] if len(args1)>4 else "0.5"
 
-    choice_list = eval(str(args1[5])) if len(args1)>5 else [-1]
-    t_s = args1[6] if len(args1)>6 else 256
+    # choice_list = eval(str(args1[5])) if len(args1)>5 else [0.02, 0.04, 0.08, 0.16, 0.32, 0.64]
+    load_folder = args1[5] if len(args1)>5 else  None
     # now parse the arguments
     parser = create_parser(config)
     args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
@@ -249,6 +250,7 @@ def main():
     
     if args.command == "start":
         # set output folder last str
+        config.set("AdaE_config.train_mode",'rank')
         train_mode = config.get("AdaE_config.train_mode")
         last_str = train_mode
 
@@ -256,11 +258,14 @@ def main():
         # config.set('AdaE_config.lr_trans', lr_trans)
         config.set('train.optimizer.default.args.lr',lr)
         config.set("complex"+'.entity_embedder.dropout', dropout)
+        
         # rank
         if rank:
             config.set('AdaE_config.dim_list', dim_list)
-            config.set("multi_lookup_embedder.dim",t_s)
-            config.set('AdaE_config.choice_list', choice_list)
+            
+            # config.set("multi_lookup_embedder.dim",dim_list[-1])
+            # config.set('AdaE_config.choice_list', choice_list)
+            config.set('AdaE_config.folder', load_folder)
         else:
             config.set("multi_lookup_embedder.dim",dim)
         # print(lr_trans)
@@ -285,7 +290,7 @@ def main():
             config.folder = os.path.join(
                 kge_base_dir(),
                 "local",
-                "experiments",
+                "retrain",
                 config.get("dataset.name"),
                 datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + "-"+ last_str
             )

@@ -28,12 +28,20 @@
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:2 '[64,256,512]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:4 '[128,256,512]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
 # wait
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:1 '[64,256,1024]' 0.5 0.5 '[0.02,0.04,0.08,0.16,0.32,0.64]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:3 '[128,256,1024]' 0.5 0.5 '[0.02,0.04,0.08,0.16,0.32,0.64]' &
+# wait
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:2 '[1024,256,64]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:6 '[64,1024,256]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
+
+
+
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:7 '[64,256,1024]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
-python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:0 '[128,512]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
-python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:2 '[64,1024]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
-wait
-python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:2 '[16,64,512,1024]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
-python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:4 '[64,128,512,1024]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:0 '[128,512]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:2 '[64,1024]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
+# wait
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:2 '[16,64,512,1024]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:4 '[64,128,512,1024]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:4 '[64,512]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:7 '[128,256,1024]' 0.5 0.5 '[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]' &
 # python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:2 '[64,256,1024,2048]' 0.5 0.5 '[0.04,0.2,0.5]' &
@@ -84,4 +92,21 @@ python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:4 '[64,128,512,1024
 # python kge/cli_debug.py models/fb15k-237/AdaE_distmult.yaml cuda:3 '[64,256]' 0.2 0.41 '[0.2]' &
 # python kge/cli_debug.py models/fb15k-237/AdaE_distmult.yaml cuda:4 '[64,1024]' 0.2 0.41 '[0.2]' &
 
-python kge/cli_debug.py models/fb15k-237/transe_rank.yaml cuda:5 '[8,16]' 0.0003 0.5 '[0.2]' &
+# python kge/cli_debug.py models/fb15k-237/transe_rank.yaml cuda:5 '[8,16]' 0.0003 0.5 '[0.2]' &
+
+# # 细粒度
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:1 '[64,256,1024]' 0.5 0.5 '[-1]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:2 '[64,256,512]' 0.5 0.5 '[-1]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:3 '[128,256,512]' 0.5 0.5 '[-1]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:4 '[8,16]' 0.5 0.5 '[-1]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:5 '[8,16,32]' 0.5 0.5 '[-1]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:7 '[4,8,16,32]' 0.5 0.5 '[-1]' &
+python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:6 '[8,32]'  0.5 0.5 '[-1]' 20 &
+python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:7 '[10,30]'  0.5 0.5 '[-1]' 20 &
+python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:5 '[128,256]'  0.5 0.5 '[-1]' 256 &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:2 '[128,256]' 0.5 0.5 '[-1]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:3 '[4,8,16,32]' 0.5 0.5 '[-1]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:4 '[64,256,512,1024]' 0.5 0.5 '[-1]' &
+wait
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:5 '[128,256,512,1024]' 0.5 0.5 '[-1]' &
+# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:6 '[64,128,256,512]' 0.5 0.5 '[-1]' &

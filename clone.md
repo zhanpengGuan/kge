@@ -241,8 +241,14 @@
   调试发现darts中二阶导数有问题，直接舍弃,后来发现没问题
   其实是学习率的问题，必须适合adagrad，也就是0.01左右
   ### 现在改成了picker双层网络，发现学习有曲线
+  ### 新增了重新训练阶段
+  必须实验cli_retrain.py
+  命令格式如下：
+  python kge/cli_retrain.py models/fb15k-237/AdaE_auto.yaml cuda:4 '[128,256,1024]' 0.5 0.5  '20231017-113833-AdaE_auto-auto-noshare-[0.02, 0.04, 0.08, 0.16, 0.32, 0.64]-[128, 256, 1024]-ts-LN-1vsall-unrolled--256-0.5-0.5'
 
-
+  # 整除写一下
+  save改一下
+  删掉optimizer_p那一块
   # 停止命令
   pkill -u  guanzp python
   pkill  -u guanzp -f "python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:4"

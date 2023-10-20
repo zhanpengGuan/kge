@@ -198,9 +198,21 @@ class Multi_LookupEmbedder(KgeEmbedder):
         self.is_bilevel = False
         # dataset
         # 数字越大频率越高
-        
-        self.rank_e, self.rank_r = dataset.count_entity_frequency(dataset._triples['train'], dataset._num_entities, dataset._num_relations, self.adae_config['choice_list'] )
+        self.rank_e, self.rank_r, self.count_e, self.pivot = dataset.count_entity_frequency(dataset._triples['train'], dataset._num_entities, dataset._num_relations, self.adae_config['choice_list'], self.dataset.folder)
         self.rank_e, self.rank_r = self.rank_e.to(self.device), self.rank_r.to(self.device)
+        
+        #retrain
+        self.choice = None
+        # print(self.adae_config['folder'])
+        if  self.adae_config['folder']!="None":
+            folder = self.adae_config['folder']
+            probability = torch.load("local/experiments/fb15k-237/"+folder+"/checkpoint_best.pt")['choice_emb'].to(self.device)
+            Gpro =  torch.zeros(probability.shape,device=self.device)
+            Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
+            self.choice = Gpro.scatter_(1, Gpro_index, 1)
+        
+            
+
 
         if self.configuration_key.split('.')[-1]=="entity_embedder":
             self.rank = self.rank_e
@@ -242,8 +254,10 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 # self.Transform_layer.weight.data = torch.eye(self.dim, self.dim)
         elif self.adae_config['train_mode'] in ['rank','auto']:
             if self.adae_config['train_mode'] == 'auto':
-                self.picker = Picker(self.config, dataset, self.dim)
-                # self.picker_low = Picker(self.config, dataset, self.dim)
+                self.picker = Picker(self.config, dataset, self.dim, max(self.rank)+1)
+                self.picker_low = Picker(self.config, dataset, self.dim, max(self.rank)+1)
+                # high, low
+                self.rank_e_weight = torch.tensor([self.generate_probability_distribution(x) for x in self.count_e],device=self.device)
             self.t_s = self.adae_config['t_s']*2
             self.choice_emb = torch.zeros(self.vocab_size, len(self.dim_list)).to(self.device)
             #随机选择
@@ -280,7 +294,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         indexes = kwargs.get('indexes', None)
         if_training = kwargs.get('training', True)
         step = kwargs.get("step",10000)
-        if self.adae_config['train_mode'] in ['original', 'fix', 'rank','auto']:
+        if self.adae_config['train_mode'] in ['original', 'fix', 'rank','auto','retrain']:
             if self.adae_config['train_mode'] == 'original':
                 # original means no change
                 emb = self._embeddings(indexes)
@@ -290,7 +304,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 # emb = self.Transform_layer(emb)
                 emb = self.BN(self.Transform_layer1((self.BN(torch.relu((self.Transform_layer(emb)))))))
             elif self.adae_config['train_mode'] == 'rank':
-                pro = self._picker_rank(indexes)
+                pro = -1
+                if self.adae_config['folder']!='None':
+                    #代表在重训练
+                    pro = self._picker_retrain(indexes)
+                else:
+                    pro = self._picker_rank(indexes)
                 emb = self._aligment_fix(indexes, probability=pro, ali_way=self.adae_config['ali_way'])
             elif self.adae_config['train_mode'] == 'auto':
                 # rank means use learned choice of dim with each entity 
@@ -313,16 +332,27 @@ class Multi_LookupEmbedder(KgeEmbedder):
         pro = torch.zeros((batch_size,len(self.dim_list)),device = self.device).scatter_(1, label, 1)    
 
         return pro
+    def _picker_retrain(self, indexes):
+
+        pro = self.choice[indexes]
+        return pro
     
     def _picker(self, indexes):
         """
         picker, when training
         """          
-        input_h =  torch.cat((self._embeddings(indexes).detach(), self.picker.bucket(self.rank[indexes])),dim = 1)
+        # print(max(self.rank))
+        # print(self.picker.bucket.weight.shape)
+        input_h =  torch.cat((self.picker.bucket(self.rank[indexes])),dim = 1)
         o = self.picker(input_h)
-        pro = F.softmax(o,dim=-1)
-
-        return pro
+        pro = F.softmax(o,dim=-1)*self.rank_e_weight[indexes][:,1].unsqueeze(1)# high
+        o_low = self.picker_low(input_h)
+        pro_low = F.softmax(o_low,dim=-1)*self.rank_e_weight[indexes][:,0].unsqueeze(1)# low
+        
+        
+        
+        
+        return pro+pro_low
     def _picker_fix(self, indexes):
         """
         picker_fix, when eval
@@ -344,8 +374,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
         for i in range(0,len(self.dim_list)):
             output_pre = -1
             if ali_way == 'ts':       
-                # if self.dim_list[i]==self.dim:
-                if i==0:
+                if self.dim_list[i]==self.dim:
+                # if i==0:
                     output_pre = emb[i]
                 else:
                     output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
@@ -369,7 +399,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
     
     def _aligment(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
         """
-        align with gumbal softmax / only be used in auto mode
+        align with gumbal softmax / only be used in auto modef
         """
   
         Tau=max(0.01,1-(5.0e-5)*step)
@@ -383,10 +413,11 @@ class Multi_LookupEmbedder(KgeEmbedder):
         for i in range(0,len(self.dim_list)): 
             output_pre = -1   
             if  ali_way == 'ts':
-                # if i==0:
-                #     output_pre = emb[i]
-                # else:
-                output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+                if self.dim_list[i]==self.dim:
+                    
+                    output_pre = emb[i]
+                else:
+                    output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
                
             elif ali_way=='zp':
                  output_pre = self.Selection(self._zero_padding(emb[i]))
@@ -410,8 +441,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 self.choice_emb[indexes] = probability
 
         return emb_final
-    def _zero_padding(self, emb):
-        
+    def _zero_padding(self, emb):        
         padding_size = abs(emb.shape[1]-self.dim)
         if self.space=='complex':
             if padding_size==0:
@@ -430,8 +460,32 @@ class Multi_LookupEmbedder(KgeEmbedder):
             emb = torch.cat((emb,torch.zeros((emb.shape[0], padding_size),device = self.device)),dim=1)
 
         return emb
+    
+
+    def generate_probability_distribution(self, frequency):
+        # 定义转折点
+        turning_point = self.pivot
+
+        if frequency <= turning_point:
+            # 低频部分，可以根据需要自定义低频部分的概率分布
+            # probability = frequency / (2 * turning_point)
+            probability = 0
+        else:
+            # 高频部分，可以根据需要自定义高频部分的概率分布
+            # probability = min(1, (frequency - turning_point) / (turning_point * 2))
+            probability= 1
+
+        return [1-probability,probability]
+
+
+
+
+
+
+
+
 class Picker(nn.Module):
-    def __init__( self, config: Config, dataset: Dataset, dim) -> None:
+    def __init__( self, config: Config, dataset: Dataset, dim, bucket_size) -> None:
         # # father init
         super(Picker, self).__init__()
         self.adae_config = config.options['AdaE_config']
@@ -457,7 +511,7 @@ class Picker(nn.Module):
         ) 
     
         # bucket emb
-        self.k = len(self.adae_config['choice_list'])+1
+        self.k = bucket_size
         self.bucket = nn.Embedding(self.k, self.dim_bucket).to(self.device)
     #
     def forward(self, input):
