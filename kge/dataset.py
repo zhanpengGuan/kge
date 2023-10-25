@@ -88,8 +88,8 @@ class Dataset(Configurable):
             count_e = torch.load(data_path+'/'+str(choice_list)+'counte.pt')
             pivot = torch.load(data_path+'/'+str(choice_list)+'pivot.pt' )
         else: 
-            count_e = torch.ones(nentity)
-            count_r = torch.ones(nrelation)
+            count_e = torch.zeros(nentity)
+            count_r = torch.zeros(nrelation)
             for head, relation, tail in triples:
                     count_e[head] += 1
                     count_e[tail] += 1

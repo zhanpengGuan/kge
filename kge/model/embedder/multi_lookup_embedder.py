@@ -71,7 +71,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
             with torch.no_grad():
                 for i in range(len(self.dim_list)):
                     self._embeddings_list[i].weight.data = torch.nn.functional.normalize(
-                        self._embeddings_list.weight.data, p=self.normalize_p, dim=-1
+                        self._embeddings_list[i].weight.data, p=self.normalize_p, dim=-1
                     )
 
     def prepare_job(self, job: Job, **kwargs):
@@ -149,7 +149,10 @@ class Multi_LookupEmbedder(KgeEmbedder):
             regularize_weight = self._get_regularize_weight()
             if not self.get_option("regularize_args.weighted"):
                 # unweighted Lp regularization
-                parameters = self._embeddings_all()
+                indexes = torch.arange(
+                    self.vocab_size, dtype=torch.long, device=self._embeddings.weight.device
+                )
+                parameters = self._adaE(indexes = indexes, training = self.training, step = self.step)
                 if self.regularize == "n3" and self.space == 'complex':
                     parameters = self._abs_complex(parameters)
                 result += [
@@ -227,6 +230,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
             # initialize weights
             self.initialize(self._embeddings.weight.data)
             self._normalize_embeddings()
+      
+            
 
         if self.adae_config['train_mode'] in ['fix','rank','auto']:
             self.AF = nn.Tanh().to(self.device)
@@ -281,11 +286,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 pass
             else:  
                 self._embeddings_list =nn.ParameterList( [nn.Parameter(torch.zeros(self.vocab_size, i)) for i in self.dim_list])
-            
+
                 if not init_for_load_only:
                     for i in range(len(self.dim_list)):
-                        self.initialize(self._embeddings_list[i])
-                        self._normalize_embeddings_list()
+                        self.initialize(self._embeddings_list[i].data)
+                    self._normalize_embeddings_list()
+              
         else:
             raise ValueError(f"Invalid value train_mode={self.adae_config['train_mode']}")
        
@@ -311,6 +317,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 else:
                     pro = self._picker_rank(indexes)
                 emb = self._aligment_fix(indexes, probability=pro, ali_way=self.adae_config['ali_way'])
+             
             elif self.adae_config['train_mode'] == 'auto':
                 # rank means use learned choice of dim with each entity 
                 if if_training:
@@ -328,9 +335,10 @@ class Multi_LookupEmbedder(KgeEmbedder):
         """          
         batch_size=len(indexes)
         # 上次的emb，离散选择
+        # label = torch.tensor([0 for i in range(batch_size)],device=self.device).unsqueeze(-1)
         label  =  self.rank[indexes].unsqueeze(-1)
         pro = torch.zeros((batch_size,len(self.dim_list)),device = self.device).scatter_(1, label, 1)    
-
+                
         return pro
     def _picker_retrain(self, indexes):
 
@@ -343,7 +351,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         """          
         # print(max(self.rank))
         # print(self.picker.bucket.weight.shape)
-        input_h =  torch.cat((self.picker.bucket(self.rank[indexes])),dim = 1)
+        input_h = self.picker.bucket(self.rank[indexes])
         o = self.picker(input_h)
         pro = F.softmax(o,dim=-1)*self.rank_e_weight[indexes][:,1].unsqueeze(1)# high
         o_low = self.picker_low(input_h)
@@ -374,13 +382,13 @@ class Multi_LookupEmbedder(KgeEmbedder):
         for i in range(0,len(self.dim_list)):
             output_pre = -1
             if ali_way == 'ts':       
-                if self.dim_list[i]==self.dim:
-                # if i==0:
-                    output_pre = emb[i]
-                else:
-                    output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+                # if self.dim_list[i]==self.dim:
+                # # if i==0:
+                #     output_pre = emb[i]
+                # else:
+                output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
             elif ali_way=='zp':
-                 output_pre = self.BN(self._zero_padding(emb[i]))
+                 output_pre = self._zero_padding(emb[i])
             output.append(output_pre)
         # 堆叠以便于计算
         emb = torch.stack(output, dim=1)
@@ -413,11 +421,11 @@ class Multi_LookupEmbedder(KgeEmbedder):
         for i in range(0,len(self.dim_list)): 
             output_pre = -1   
             if  ali_way == 'ts':
-                if self.dim_list[i]==self.dim:
+                # if self.dim_list[i]==self.dim:
                     
-                    output_pre = emb[i]
-                else:
-                    output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+                #     output_pre = emb[i]
+                # else:
+                output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
                
             elif ali_way=='zp':
                  output_pre = self.Selection(self._zero_padding(emb[i]))
@@ -492,10 +500,10 @@ class Picker(nn.Module):
         self.device = config.get("job.device")
         self.dim: int = dim
         self.dim_list_size = len(self.adae_config['dim_list'])
-        self.dim_bucket = int(self.dim)
+        self.dim_bucket = int(32)
         
-        self.FC1 = nn.Linear(self.dim_bucket+self.dim,128).to(self.device)
-        self.FC2 = nn.Linear(128,self.dim_list_size).to(self.device)
+        self.FC1 = nn.Linear(self.dim_bucket,20).to(self.device)
+        self.FC2 = nn.Linear(20,self.dim_list_size).to(self.device)
         # self.FC3 = nn.Linear(64,self.dim_list_size).to(self.device)
         nn.init.xavier_uniform_(self.FC1.weight.data)
         nn.init.xavier_uniform_(self.FC2.weight.data)

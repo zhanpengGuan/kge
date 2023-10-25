@@ -1,1 +1,1 @@
-python kge/cli_retrain.py models/fb15k-237/AdaE_rank.yaml cuda:4 '[128,256,1024]' 0.5 0.5  '20231017-113833-AdaE_auto-auto-noshare-[0.02, 0.04, 0.08, 0.16, 0.32, 0.64]-[128, 256, 1024]-ts-LN-1vsall-unrolled--256-0.5-0.5' &
+python kge/cli_retrain.py models/fb15k-237/AdaE_rank.yaml cuda:4 '[128,256,1024]' 0.5 0.5  "20231021-041445-AdaE_auto-auto-noshare-[-1]-[64, 128, 256, 512]-ts-sametrain-twins--256-0.5-0.5" &

@@ -1,3 +1,7 @@
+import:
+- complex
+- multi_lookup_embedder
+- AdaE
 complex:
   entity_embedder:
     type: multi_lookup_embedder
@@ -14,11 +18,8 @@ eval:
   metrics_per:
     relation_type: true
   trace_level: example
-import:
-- complex
-- multi_lookup_embedder
-- AdaE
-lookup_embedder:
+
+multi_lookup_embedder:
   dim: 128
   initialize: uniform_
   initialize_args:
@@ -52,7 +53,7 @@ train:
   max_epochs: 400
   optimizer_args:
     lr: 0.5255808623927111
-  type: darts
+  type: 1vsAll
 valid:
   early_stopping:
     min_threshold:
@@ -64,15 +65,15 @@ AdaE_config:
   bi-level: False
   share: False
   type: '1vsall'
-  ali_way: 'ts'
+  ali_way: 'zp'
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'rank'
-  dim_list: [64,256,1024]
-  choice_list: [0.1,0.6]
+  dim_list: [128,128]
+  choice_list: [0.2]
   s_u: 2
-  ratio: 0.8
+  ratio: 1.0
   urolled: False
-  t_s: 512
+  t_s: 128
   lr_p: 0.1825
   device: 'cuda:0'
   #目前device没用

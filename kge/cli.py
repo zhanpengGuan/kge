@@ -233,6 +233,7 @@ def main():
             config.folder = os.path.join(
                 kge_base_dir(),
                 "local",
+                config.get("dataset.name"),
                 "experiments",
                 datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + last_str,
             )
