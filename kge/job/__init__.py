@@ -16,3 +16,4 @@ from kge.job.search_auto import AutoSearchJob
 from kge.job.search_ax import AxSearchJob
 from kge.job.search_grash import GraSHSearchJob
 from kge.job.train_darts import TrainingJobDarts
+from kge.job.eval_frequency import EntityRankingJob_freq

@@ -1,66 +1,63 @@
-
 import:
-- AdaE
 - complex
 - multi_lookup_embedder
+- AdaE
 complex:
   entity_embedder:
     type: multi_lookup_embedder
-    dropout: 0.5
-    regularize_weight: 1.3408200403806817e-08
+    dropout: 0.3592749142853321
+    regularize_weight: 4.5230047706178325e-06
+    pretrain:
+      model_filename: 'local/wnrr/experiments/20231025-110544-complex-128/checkpoint_best.pt'
   relation_embedder:
     type: multi_lookup_embedder
-    dropout: 0.22684140529516872
-    regularize_weight: 8.266519211068944e-14
+    dropout: 0.3112283826796357
+    regularize_weight: 4.192985917075565e-10
+    pretrain:
+      model_filename: 'local/wnrr/experiments/20231025-110544-complex-128/checkpoint_best.pt'
 dataset:
-  name: fb15k-237
+  name: wnrr
 eval:
   batch_size: 256
   metrics_per:
     relation_type: true
   trace_level: example
 
+
 multi_lookup_embedder:
-  dim: 256
+  dim: 128
   initialize: uniform_
   initialize_args:
     normal_:
       mean: 0.0
-      std: 0.5592429029559286
+      std: 0.0005472140383629246
     uniform_:
-      a: -0.8328168489829233
+      a: -0.28148249060722197
     xavier_normal_:
       gain: 1.0
     xavier_uniform_:
       gain: 1.0
-  regularize_args:
-    p: 3
-    weighted: true
-model: AdaE
-
+model: complex
 negative_sampling:
   implementation: batch
   num_samples:
-    o: 1000
     p: -1
-    s: 529
-
 AdaE:
   base_model:
     type: complex
 train:
   auto_correct: true
-  batch_size: 1024
+  batch_size: 512
   loss_arg: 1.0
   lr_scheduler: ReduceLROnPlateau
   lr_scheduler_args:
     factor: 0.95
     mode: max
-    patience: 7
+    patience: 5
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.18255429345236635
+    lr: 0.5255808623927111
   type: darts
 valid:
   early_stopping:
@@ -69,22 +66,25 @@ valid:
       metric_value: 0.05
     patience: 10
   every: 5
-job.device:
-  cuda:0
+
+
+
 AdaE_config:
   adae: True
   bi-level: False
-  share: False
+  share: True
   type: '1vsall'
   ali_way: 'zp'
   # train_mode: ['rank','auto','fix','original']
-  train_mode: 'rank'
-  dim_list: [192,256]
+  train_mode: 'auto'
+  cie: True
+  padding: -0.28
+  dim_list: [64,80]
   choice_list: [0.2]
   s_u: 2
   ratio: 1.0
   urolled: False
-  t_s: 512
-  lr_p: 0.1825
+  t_s: 128
+  lr_p: 0.1
   device: 'cuda:0'
   #目前device没用

@@ -382,6 +382,7 @@ class KgeModel(KgeBase):
         #: Embedder used for relations
         self._relation_embedder: KgeEmbedder
 
+       
         if create_embedders:
             self._entity_embedder = KgeEmbedder.create(
                 config,

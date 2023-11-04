@@ -58,6 +58,9 @@ class EvaluationJob(TrainingOrEvaluationJob):
     def _run(self) -> Dict[str, Any]:
         was_training = self.model.training
         self.model.eval()
+        # for write in folder
+        self.config.log_folder = None
+        # gzp
         self.config.log(
             "Evaluating on "
             + self.eval_split

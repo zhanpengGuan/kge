@@ -80,7 +80,6 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
             elif self.adae_config['train_mode'] in ['rank']:
                 pass
             elif self.adae_config['train_mode'] in ['auto']:
-               
                 picker_e = self.model._entity_embedder.picker
                 picker_r = self.model._relation_embedder.picker
                 picker_e_low = self.model._entity_embedder.picker_low
@@ -91,10 +90,16 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
 
                 # picker =  {'e':picker_e,'r':picker_r}
                 # learnable_parameters = [param for name, param in vars(picker).items() if isinstance(param, torch.nn.Parameter) and param.requires_grad]
-                embeddings_params_e = list( map( id, self.model._base_model._entity_embedder._embeddings.parameters() ) )
-                embeddings_params_r = list( map( id, self.model._base_model._relation_embedder._embeddings.parameters() ) )
-
-                base_params = filter(lambda p: id(p) not in embeddings_params_r+embeddings_params_e+params_p_id, self.model.parameters())
+                if hasattr(self.model,'_base_model'):
+                    embeddings_params_e = list( map( id, self.model._base_model._entity_embedder._embeddings.parameters() ) )
+                    embeddings_params_r = list( map( id, self.model._base_model._relation_embedder._embeddings.parameters() ) )
+                else:
+                    embeddings_params_e = list( map( id, self.model._entity_embedder._embeddings.parameters() ) )
+                    embeddings_params_r = list( map( id, self.model._relation_embedder._embeddings.parameters() ) )
+                if self.adae_config['cie']:
+                    base_params = filter(lambda p: id(p) not in params_p_id, self.model.parameters())
+                else:                     
+                    base_params = filter(lambda p: id(p) not in embeddings_params_r+embeddings_params_e+params_p_id, self.model.parameters())
 
 
                 opt = getattr(torch.optim, config.get("train.optimizer.default.type"))
@@ -115,7 +120,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                     group["initial_lr"]=group["lr"]
 
                 self.architect = Architect(self.model, params_p, self.optimizer_p, self, self.adae_config)
-               
+            
 
 
     def _get_collate_fun(self):
@@ -352,11 +357,14 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                     try:
                         # try running the batch
                         # architecture的更新
-                        if self.adae_config['train_mode'] in ['auto']:   
-                            
-                            #对α进行更新，对应伪代码的第一步，也就是用公式6
-                            if batch_index % self.adae_config['s_u'] == 0:
-                                self.architect.step(batch_index, batch_t, batch_v, self.adae_config['lr_p'], self.optimizer,self.adae_config['urolled'])
+                        
+                        if self.adae_config['train_mode'] in ['auto']:
+                            self.optimizer_p.zero_grad()#清除上一步的残余更新参数值
+                            if not self.adae_config['cie']:   
+                                
+                                #对α进行更新，对应伪代码的第一步，也就是用公式6
+                                if batch_index % self.adae_config['s_u'] == 0:
+                                    self.architect.step(batch_index, batch_t, batch_v, self.adae_config['lr_p'], self.optimizer,self.adae_config['urolled'])
                             
                        
 
@@ -364,6 +372,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                             
                         if not self.is_forward_only:
                             self.optimizer.zero_grad()
+                            
                         batch_result: TrainingJob._ProcessBatchResult = self._process_batch(
                             batch_index, batch_t
                         )
@@ -460,8 +469,9 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
             batch_optimizer_time = -time.time()
             if not self.is_forward_only:
                 self.optimizer.step()
+                if self.adae_config['cie']:
+                    self.optimizer_p.step() 
             batch_optimizer_time += time.time()
-
             # update batch trace with the results
             self.current_trace["batch"].update(
                 {
@@ -571,18 +581,33 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                 "job_id": self.job_id,
             }
         elif train_mode == 'auto':
-            train_checkpoint = {
-                "type": "train",
-                "epoch": self.epoch,
-                "valid_trace": self.valid_trace,
-                "model": self.model.save(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-                "optimizer_p_state_dict": self.optimizer_p.state_dict(),
-                "lr_scheduler_state_dict": self.kge_lr_scheduler.state_dict(),
-                "lr_scheduler_p_state_dict": self.kge_lr_scheduler_p.state_dict(),
-                "choice_emb": self.model._base_model._entity_embedder.choice_emb,
-                "job_id": self.job_id,
-            }
+            if self.adae_config['cie']:
+                 train_checkpoint = {
+                    "type": "train",
+                    "epoch": self.epoch,
+                    "valid_trace": self.valid_trace,
+                    "model": self.model.save(),
+                    "optimizer_state_dict": self.optimizer.state_dict(),
+                    "optimizer_p_state_dict": self.optimizer_p.state_dict(),
+                    "lr_scheduler_state_dict": self.kge_lr_scheduler.state_dict(),
+                    "lr_scheduler_p_state_dict": self.kge_lr_scheduler_p.state_dict(),
+                    "choice_emb": self.model._entity_embedder.choice_emb,
+                    "job_id": self.job_id,
+                }
+            else:
+                    
+                train_checkpoint = {
+                    "type": "train",
+                    "epoch": self.epoch,
+                    "valid_trace": self.valid_trace,
+                    "model": self.model.save(),
+                    "optimizer_state_dict": self.optimizer.state_dict(),
+                    "optimizer_p_state_dict": self.optimizer_p.state_dict(),
+                    "lr_scheduler_state_dict": self.kge_lr_scheduler.state_dict(),
+                    "lr_scheduler_p_state_dict": self.kge_lr_scheduler_p.state_dict(),
+                    "choice_emb": self.model._base_model._entity_embedder.choice_emb,
+                    "job_id": self.job_id,
+                }
         train_checkpoint = self.config.save_to(train_checkpoint)
         checkpoint.update(train_checkpoint)
         return checkpoint

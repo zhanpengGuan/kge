@@ -20,7 +20,7 @@ eval:
   trace_level: example
 
 multi_lookup_embedder:
-  dim: 128
+  dim: 256
   initialize: uniform_
   initialize_args:
     normal_:
@@ -32,7 +32,7 @@ multi_lookup_embedder:
       gain: 1.0
     xavier_uniform_:
       gain: 1.0
-model: complex
+model: AdaE
 negative_sampling:
   implementation: batch
   num_samples:
@@ -66,6 +66,7 @@ AdaE_config:
   share: False
   type: '1vsall'
   ali_way: 'zp'
+  
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'rank'
   dim_list: [128,128]

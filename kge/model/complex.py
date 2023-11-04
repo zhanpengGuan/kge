@@ -32,6 +32,7 @@ class ComplExScorer(RelationalScorer):
         o_all = torch.cat((o_emb, o_emb_im, o_emb_re), dim=1)  # re, im, im, re
 
         if combine == "spo":
+            # re*re*re,im*im*re,re*im*im,-im*re*im
             out = (s_all * o_all * r_all).sum(dim=1)
         elif combine == "sp_":
             out = (s_all * r_all).mm(o_all.transpose(0, 1))

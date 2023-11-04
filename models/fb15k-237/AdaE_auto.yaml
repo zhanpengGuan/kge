@@ -68,7 +68,7 @@ valid:
       epochs: 50
       metric_value: 0.05
     patience: 30
-  every: 1
+  every: 5
 job.device:
   cuda:0
 AdaE_config:

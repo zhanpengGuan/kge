@@ -18,7 +18,7 @@ class TrainingJob1vsAll(TrainingJob):
         )
         config.log("Initializing spo training job...")
         self.type_str = "1vsAll"
-
+        self.adae_config = self.config.options['AdaE_config']
         if self.__class__ == TrainingJob1vsAll:
             for f in Job.job_created_hooks:
                 f(self)

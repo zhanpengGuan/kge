@@ -1,0 +1,56 @@
+complex:
+  entity_embedder:
+    dropout: 0.44299429655075073
+    regularize_weight: 7.830760727899156e-12
+  relation_embedder:
+    dropout: -0.4746062345802784
+    regularize_weight: 1.182876478423781e-10
+dataset:
+  name: wikidata5m
+  num_entities: 4818679
+  num_relations: 828
+eval:
+  batch_size: 200
+  chunk_size: 25000
+  num_workers: 2
+import:
+- complex
+lookup_embedder:
+  dim: 128
+  initialize_args:
+    normal_:
+      mean: 0.0
+      std: 5.8970567449527816e-05
+  regularize_args:
+    p: 1
+    weighted: true
+  sparse: true
+model: complex
+negative_sampling:
+  implementation: batch
+  num_samples:
+    o: 7851
+    s: 2176
+  shared: true
+  with_replacement: false
+train:
+  auto_correct: true
+  batch_size: 1024
+  loss_arg: .nan
+  lr_scheduler: ReduceLROnPlateau
+  lr_scheduler_args:
+    factor: 0.95
+    mode: max
+    patience: 1
+    threshold: 0.0001
+  max_epochs: 200
+  num_workers: 8
+  optimizer_args:
+    lr: 0.6560544891789137
+  type: negative_sampling
+valid:
+  early_stopping:
+    min_threshold:
+      epochs: 10
+      metric_value: 0.1
+    patience: 10

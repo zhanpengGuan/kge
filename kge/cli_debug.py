@@ -143,7 +143,7 @@ def main():
     config = Config() 
     #
     args1 = sys.argv[1:]
-    yaml_name = args1[0] if len(args1)>0 else "models/WNRR18/AdaE_rank.yaml"
+    yaml_name = args1[0] if len(args1)>0 else "models/WNRR18/AdaE_auto.yaml"
     device = args1[1] if len(args1)>1 else "cuda:1"
     # other hyperparameters
     # rank
@@ -151,24 +151,30 @@ def main():
     if debug:
         rank = True
         if rank:
-            dim_list = eval(str(args1[2])) if len(args1)>2 else [64,80]
+            dim_list = eval(str(args1[2])) if len(args1)>2 else [64,128]
             # dim = dim_list[-1]
         # fix
         else:
-            dim = args1[2] if len(args1)>2 else 256
-        lr = args1[3] if len(args1)>3 else "0.22"
-        dropout = args1[4] if len(args1)>4 else "0.3128825817257166"
+            dim = args1[2] if len(args1)>2 else 128
+        lr = args1[3] if len(args1)>3 else "0.55"
+        dropout = args1[4] if len(args1)>4 else "0.3598825817257166"
 
         choice_list = eval(str(args1[5])) if len(args1)>5 else [0.2]
         t_s = args1[6] if len(args1)>6 else 128
         # auto
         s_u =  args1[7] if len(args1)>7 else 3
-        lr_p = args1[8] if len(args1)>8 else 0.01
+        lr_p = args1[8] if len(args1)>8 else 0.05
 
 
     # now parse the arguments
     parser = create_parser(config)
-    args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
+    
+    # test = True
+    test = False
+    if test:
+        args, unknown_args = parser.parse_known_args(("test?local/yago3-10/experiments/20231102-074855-complex-512-0.22584037828361303").split("?"))
+    else:
+        args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
     # args, unknown_args = parser.parse_known_args(("test?local/experiments/fb15k-237/20231012-055709-AdaE_rank-rank-noshare-[0.999]-[64, 256]-ts-nots256--256-0.5-0.5").split("?"))
    
     
@@ -251,9 +257,9 @@ def main():
             if key == "model":
                 config._import(value)
 
-    # initialize output folder
-    
-    
+    if test:
+        config.set('entity_ranking.class_name','EntityRankingJob_freq')
+
     if args.command == "start":
         # set output folder last str
         last_str="-"
@@ -271,16 +277,22 @@ def main():
                 config.set('AdaE_config.choice_list', choice_list)
                 config.set('AdaE_config.s_u', s_u)
                 config.set('AdaE_config.lr_p', lr_p)
+                
 
             else:
                 config.set("multi_lookup_embedder.dim",dim)
             # print(lr_trans)
             # import time
             # time.sleep(10)
+
+            if train_mode  in  ["auto"]:
+                last_str +="-"+ ('cie' if config.get("AdaE_config.cie") else 'nocie' )
+                last_str += '-' +str(config.get("AdaE_config.padding"))+ '-'
+           
             if train_mode not in  ["original", "fix"]:
                 last_str+="-share" if config.get("AdaE_config.share") == True else "-noshare"
                 last_str+="-"+ str(config.get("AdaE_config.choice_list"))+"-"+str(config.get('AdaE_config.dim_list'))
-                last_str +="-"+str(config.get("AdaE_config.ali_way"))
+                last_str +="-"+str(config.get("AdaE_config.ali_way"))+"-(a)-"
                 last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
                 # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
                 last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+"-"+str(config.get("complex"+'.entity_embedder.dropout'))
@@ -291,7 +303,7 @@ def main():
                 pass
             if train_mode  in  ["auto"]:
                 last_str+="-"+ str(config.get("AdaE_config.lr_p"))
-                last_str+="-"+ str(config.get("AdaE_config.s_u"))+"-01-allts"
+                last_str+="-"+ str(config.get("AdaE_config.s_u"))+"-01"
             
         if args.folder is None:  # means: set default
             config_name = os.path.splitext(os.path.basename(args.config))[0]
@@ -319,7 +331,7 @@ def main():
         # disable processing of outdated cached dataset files globally
         Dataset._abort_when_cache_outdated = args.abort_when_cache_outdated
 
-        # set random seeds
+        # set ra
         seed_from_config(config)
 
         # let's go

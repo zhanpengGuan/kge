@@ -23,6 +23,8 @@
     正则化函数需要重写？此处_embeddings不能被更新，但要作为中间变量传递梯度。有两个解决办法
     第一，跟RotatE一样，重写Penty函数。
     第二，_embeddings也作为参数，但是optimizer不包括它。用了这个方法
+    第三种，直接adae过一遍就好了
+
     这里需要在embedding赋值的时候 直接复制而不是.detach，什么时候需要detach，而是picker的输入需要，只在哪里detach即可。
     train_mode代表的模块 fix,original，rank写完了需要实验调试证明没啥问题
     23/0913
@@ -64,21 +66,21 @@
     original可以达到以前的 要求了
     2023/1004
     KGE_model_parameters有哪些参数：
-    <!-- '_base_model._entity_embedder._embeddings.weight' -->
-    '_base_model._entity_embedder.BN.weight'、bais
-    <!-- '_base_model._entity_embedder.picker.FC1、2、3.weight'、bais
-    '_base_model._entity_embedder.picker.bucket.weight' -->
-    '_base_model._entity_embedder.Transform_layer_list.0、1.weight'、bais
-    '_base_model._entity_embedder._embeddings_list.0、1'
+    '_base_model._entity_embedder._embeddings.weight'
+    <!-- '_base_model._entity_embedder.BN.weight'、bais -->
+    '_base_model._entity_embedder.picker.FC1、2.weight'、bais
+    '_base_model._entity_embedder.picker.bucket.weight'
+    <!-- '_base_model._entity_embedder.Transform_layer_list.0、1.weight'、bais -->
+    <!-- '_base_model._entity_embedder._embeddings_list.0、1' -->
     发现picker中计算loss的过程，其中有导致了embeddings的更新。
 
     2023/1005
     embeddings有几个用处：
     picker的输入 ，已经解决,采用embeddings.detach(),也就是上一次的值
     penalty的输入
-    首先输入embeddings的赋值操作无法追踪到embedding_list，因此必须直接使用adaE()方法，但是只进行了部分uniq_index的重写。 现在penalty可以更新到embedding_list了。
+    首先输入embeddings的赋值操作无法追踪到embedding_list，因此必须直接使用adaE()方法，但是只进行了部分uniq_index的重写。 现在penalty可以更新到embedding_list了。现在都解决了
     和_loss的求penalty
-    因为比较繁琐而且双层规划本身就是一种正则化，并且penalty用处也不是很大、。所以不求了
+    因为比较繁琐而且双层规划本身就是一种正则化，并且penalty用处也不是很大、。所以不求了，错最后都求了
 
     只要设计取embedding，emb()就会赋值 ：有好几处loss的计算属于bi-level的过程，并不需要更改embeddings，赋值只存在于kge_model的aligment的过程。 已经解决
     现在发现picker部分的grad很小-11次方,换成了relu有所缓解

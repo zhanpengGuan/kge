@@ -96,7 +96,8 @@
 
 # # 细粒度
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:1 '[64,256,1024]' 0.5 0.5 '[-1]' &
-# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:2 '[64,256,512]' 0.5 0.5 '[-1]' &
+
+# python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:0 '[128,160]' 0.5 0.5 '[0.2]' 160 &
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:3 '[128,256,512]' 0.5 0.5 '[-1]' &
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:4 '[8,16]' 0.5 0.5 '[-1]' &
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:5 '[8,16,32]' 0.5 0.5 '[-1]' &
@@ -134,16 +135,21 @@
 ## complEx而不是AdaE
 # python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:5 "[64,384]" 0.5 0.36 "[0.2]" 128 &
 # python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:1 "[40,80]" 0.526 0.36 "[0.5]" 80 &
-python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:1 "[40,80]" 0.526 0.36 "[0.1]" 80 &
-python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:2 "[40,80]" 0.526 0.36 "[0.3]" 80 &
-python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:3 "[40,80]" 0.526 0.36 "[0.4]" 80 &
-python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:4 "[40,80]" 0.526 0.36 "[0.6]" 80 &
-python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:1 "[40,80]" 0.526 0.36 "[0.7]" 80 &
-python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:2 "[40,80]" 0.526 0.36 "[0.8]" 80 &
-python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:3 "[40,80]" 0.526 0.36 "[0.9]" 80 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:1 "[40,80]" 0.526 0.36 "[0.2]" 128 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:4 "[64,80]" 0.526 0.36 "[0.2]" 128 &
+
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:4 "[128,128]" 0.526 0.36 "[0.2]" 128 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:2 "[128,64]" 0.526 0.36 "[0.2]" 128 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:3 "[80,64]" 0.526 0.36 "[0.2]" 80 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:4 "[40,80]" 0.526 0.36 "[0.6]" 80 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:1 "[40,80]" 0.526 0.36 "[0.7]" 80 &
+
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:5 "[64,80]" 0.526 0.36 "[0.2]" 80 &
 # python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:0 "[64,80]" 0.526 0.36 "[0.2]" 80 &
 # python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:3 "[48,80]" 0.526 0.36 "[0.2]" 80 &
 # python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:2 "[48,128]" 0.526 0.36 "[0.2]" 80 &
+
+## ConvE，wnrr18
 
 
 
@@ -183,9 +189,6 @@ wait
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:3 '[10,30,50]'  0.5 0.5 '[-1]' 30 1 0.1 &
 
 
-
-
-# python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:4 '[8,16,32,64]'  0.5 0.5 '[-1]' 20 &
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:3 '[10,20,30,40]'  0.5 0.5 '[-1]' 20 &
 wait
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:7 '[64,128,256,512]'  0.5 0.5 '[-1]' 256 &
@@ -198,3 +201,45 @@ wait
 
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:5 '[128,256,512,1024]' 0.5 0.5 '[-1]' &
 # python kge/cli_debug.py models/fb15k-237/AdaE_auto.yaml cuda:6 '[64,128,256,512]' 0.5 0.5 '[-1]' &
+
+
+
+# python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:5 '[192,256]' 0.5 0.5 '[0.2]' 256 &
+# python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:6 '[192,256]' 0.5 0.5 '[0.5]' 256 &
+# python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:7 '[192,256]' 0.5 0.5 '[0.8]' 256 &
+# python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:7 '[128,256]' 0.1825 0.5 '[0.8]' 256 &
+# python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:4 '[128,256]' 0.1825 0.5 '[0.9]' 256 &
+
+
+
+## wnrr18
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:1 "[64,128]" 0.526 0.359 "[0.2]" 128 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:1 "[64,80]" 0.526 0.359 "[0.2]" 80 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:1 "[64,80]" 0.526 0.359 "[0.2]" 80 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:2 "[64,80]" 2.5 0.36 "[0.2]" 80 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:1 "[64,80]" 3.5 0.36 "[0.2]" 80 &
+# wait
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:5 "[64,80]" 0.05 0.36 "[0.2]" 80 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:7 "[64,80]" 0.526 0.36 "[0.2]" 80 &
+# python kge/cli_debug.py models/WNRR18/AdaE_rank.yaml cuda:3 "[32,64,80]" 0.526 0.36 "[0.2,0.5]" 80 &
+
+
+
+## yago3-10
+# python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:1 "[96,128]" 0.2258 0.0 "[0.2]" 128 &
+# python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:6 "[96,128]" 0.5 0.0 "[0.2]" 128 &
+# python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:7 "[96,128]" 0.5 0.0 "[0.5]" 128 &
+# python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:5 "[96,128]" 0.5 0.0 "[0.8]" 128 &
+# python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:6 "[96,128]" 0.5 0.0 "[0.2]" 128 &
+# python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:7 "[96,128]" 0.5 0.0 "[0.5]" 128 &
+# python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:2 "[96,128]" 0.5 0.0 "[0.8]" 128 &
+# # wnrr auto
+
+
+
+python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:2 '[1,80]'  0.526 0.359 '[0.2]' 128 2 0.05 &
+python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:3 '[1,80]'  0.526 0.359 '[0.2]' 128 2 0.5 &
+python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:3 '[1,80]'  0.526 0.359 '[0.2]' 128 2 0.5 &
+# python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:4 '[1,80]'  0.526 0.359 '[0.2]' 128 2 0.05 &
+wait
+# python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:4 '[1,80]'  0.526 0.359 '[0.2,0.5,0.7]' 128 2 0.05 &

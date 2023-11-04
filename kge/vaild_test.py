@@ -1,4 +1,4 @@
-
+# 本模块用于计算数据集的相关分布
 #!/usr/bin/env python
 import datetime
 import argparse
@@ -61,5 +61,17 @@ if __name__=="__main__":
         config.load(args.config)
     dataset = Dataset.create(config)
     rank_e, rank_r, count_e, pivot = dataset.count_entity_frequency(dataset._triples['train'], dataset._num_entities, dataset._num_relations, [0.2], dataset.folder)
-    rank_e, rank_r, count_e, pivot = dataset.count_entity_frequency(dataset._triples['train'], dataset._num_entities, dataset._num_relations, [0.2], dataset.folder)
-
+    z = []
+    for index,i in enumerate(count_e):
+        if i==0:
+            z.append(index)
+    rank_e, rank_r, count_e, pivot = dataset.count_entity_frequency(dataset._triples['test'], dataset._num_entities, dataset._num_relations, [0.2], dataset.folder)
+    v = []
+    for index,i in enumerate(count_e):
+        if i>0:
+            v.append(index)
+    print(len(z),len(v))
+    count = 0
+    for i in z:
+        if i in v:
+            count+=1

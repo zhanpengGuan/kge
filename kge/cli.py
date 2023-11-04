@@ -227,7 +227,7 @@ def main():
 
     # initialize output folder
     if args.command == "start":
-        last_str = "-"+ str(config.get("lookup_embedder.dim"))
+        last_str = "-"+ str(config.get("lookup_embedder.dim"))+"-"+ str(config.get("train.optimizer.default.args.lr"))+"-"+ str(config.get("train.loss"))
         if args.folder is None:  # means: set default
             config_name = os.path.splitext(os.path.basename(args.config))[0]
             config.folder = os.path.join(
