@@ -81,15 +81,15 @@
 # wait
 # kge start models/WNRR18/complex.yaml --job.device cuda:5 --lookup_embedder.dim 128  --train.optimizer.default.args.lr 0.05 &
 # kge start models/WNRR18/complex.yaml --job.device cuda:7 --lookup_embedder.dim 128  --train.optimizer.default.args.lr 0.8 &
-wait
-kge start models/WNRR18/complex.yaml --job.device cuda:5 --lookup_embedder.dim 128  --train.loss  bce &
-kge start models/WNRR18/complex.yaml --job.device cuda:6 --lookup_embedder.dim 128  --train.loss  bce_mean &
-kge start models/WNRR18/complex.yaml --job.device cuda:7 --lookup_embedder.dim 128  --train.loss  bce_self_adversarial &
-wait
-kge start models/WNRR18/complex.yaml --job.device cuda:5 --lookup_embedder.dim 128  --train.loss   margin_ranking &
-kge start models/WNRR18/complex.yaml --job.device cuda:6 --lookup_embedder.dim 128  --train.loss   ce &
-kge start models/WNRR18/complex.yaml --job.device cuda:7 --lookup_embedder.dim 128  --train.loss   soft_margin &
-kge start models/WNRR18/complex.yaml --job.device cuda:5 --lookup_embedder.dim 128  --train.loss   se &
+# wait
+# kge start models/WNRR18/complex.yaml --job.device cuda:5 --lookup_embedder.dim 128  --train.loss  bce &
+# kge start models/WNRR18/complex.yaml --job.device cuda:6 --lookup_embedder.dim 128  --train.loss  bce_mean &
+# kge start models/WNRR18/complex.yaml --job.device cuda:7 --lookup_embedder.dim 128  --train.loss  bce_self_adversarial &
+# wait
+# kge start models/WNRR18/complex.yaml --job.device cuda:5 --lookup_embedder.dim 128  --train.loss   margin_ranking &
+# kge start models/WNRR18/complex.yaml --job.device cuda:6 --lookup_embedder.dim 128  --train.loss   ce &
+# kge start models/WNRR18/complex.yaml --job.device cuda:7 --lookup_embedder.dim 128  --train.loss   soft_margin &
+# kge start models/WNRR18/complex.yaml --job.device cuda:5 --lookup_embedder.dim 128  --train.loss   se &
 
 ## yago-3
 # kge start models/YAGO/complex.yaml --job.device cuda:4 --lookup_embedder.dim 256 &
@@ -109,3 +109,41 @@ kge start models/WNRR18/complex.yaml --job.device cuda:5 --lookup_embedder.dim 1
 # kge start models/fb15k-237/complex.yaml --job.device cuda:5 --train.optimizer.default.args.lr 0.18255  &
 # kge start models/fb15k-237/complex.yaml --job.device cuda:6 --train.optimizer.default.args.lr 0.5  &
 # kge start models/fb15k-237/complex.yaml --job.device cuda:7 --train.optimizer.default.args.lr 0.65  &
+
+
+# # ## wn18rr, distmult
+# kge start models/WNRR18/distmult.yaml --job.device cuda:1 --lookup_embedder.dim 128 &
+# kge start models/WNRR18/distmult.yaml --job.device cuda:2 --lookup_embedder.dim 256 &
+# kge start models/WNRR18/distmult.yaml --job.device cuda:3 --lookup_embedder.dim 512 &
+# # wait
+# kge start models/WNRR18/distmult.yaml --job.device cuda:5 --lookup_embedder.dim 256 --train.type '1vsAll' --train.optimizer.default.args.lr 0.5 &
+
+# wait
+# ## fb15k237, distmult
+# kge start models/fb15k-237/distmult.yaml --job.device cuda:1 --lookup_embedder.dim 128 &
+# kge start models/fb15k-237/distmult.yaml --job.device cuda:2 --lookup_embedder.dim 256 &
+
+# wait
+# kge start models/fb15k-237/distmult.yaml --job.device cuda:1 --lookup_embedder.dim 256 --train.type '1vsAll' &
+# kge start models/fb15k-237/distmult.yaml --job.device cuda:2 --lookup_embedder.dim 256 --train.type '1vsAll'  --model 'distmult' &
+# kge start models/fb15k-237/distmult.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type 'KvsAll'  --model 'distmult' &
+# distmult，yago3-10
+
+# transe
+kge start models/fb15k-237/transe.yaml --job.device cuda:1 --lookup_embedder.dim 128 --train.type '1vsAll' &
+kge start models/fb15k-237/transe.yaml --job.device cuda:2 --lookup_embedder.dim 128 --train.type 'KvsAll' &
+kge start models/fb15k-237/transe.yaml --job.device cuda:3 --lookup_embedder.dim 128 &
+wait
+kge start models/WNRR18/transe.yaml --job.device cuda:1 --lookup_embedder.dim 512  &
+
+
+# rotate
+kge start models/fb15k-237/rotate.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type '1vsAll' &
+wait
+kge start models/fb15k-237/rotate.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type 'KvsAll' &
+kge start models/WNRR18/rotate.yaml --job.device cuda:2 --lookup_embedder.dim 256 --train.type '1vsAll' &
+kge start models/WNRR18/rotate.yaml --job.device cuda:1 --lookup_embedder.dim 256  &
+# conve
+wait
+kge start models/YAGO/transe.yaml --job.device cuda:2 --lookup_embedder.dim 128  &
+kge start models/YAGO/conve.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type '1vsAll' &

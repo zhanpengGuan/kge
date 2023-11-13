@@ -1,3 +1,4 @@
+from asyncio import sleep
 import torch
 from torch import Tensor
 import torch.nn as nn
@@ -7,7 +8,7 @@ from kge import Config, Dataset
 from kge.job import Job
 from kge.model import KgeEmbedder
 from kge.misc import round_to_points
-
+import numpy as np
 from typing import List
 
 
@@ -272,7 +273,11 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 if self.adae_config['cie']:
                     self.choice_emb = torch.zeros(self.vocab_size, self.dim).to(self.device)
                     self.mask =  torch.tril(torch.ones(self.dim,self.dim,device=self.device))
-               
+                else:
+                    self.mask =  torch.zeros(len(self.dim_list),self.dim,device=self.device)
+                    for i, k in enumerate(self.dim_list):
+                        self.mask[i, :k] = 1
+
                     
             
             self.t_s = self.adae_config['t_s']*2
@@ -369,9 +374,9 @@ class Multi_LookupEmbedder(KgeEmbedder):
         # print(self.picker.bucket.weight.shape)
         input_h = self.picker.bucket(self.rank[indexes])
         o = self.picker(input_h)
-        pro = o*self.rank_e_weight[indexes][:,1].unsqueeze(1)# high
+        pro =  o*self.rank_e_weight[indexes][:,1].unsqueeze(1)# high
         o_low = self.picker_low(input_h)
-        pro_low = o_low*self.rank_e_weight[indexes][:,0].unsqueeze(1)# low
+        pro_low = o_low *self.rank_e_weight[indexes][:,0].unsqueeze(1)# low
         
         final_pro = pro+pro_low
         
@@ -421,66 +426,99 @@ class Multi_LookupEmbedder(KgeEmbedder):
         return emb_final
   
     
+    # def _aligment(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
+    #     """
+    #     align with gumbal softmax / only be used in auto modef
+    #     """
+  
+    #     Tau=max(0.01,1*np.exp(-0.000003*step))
+    #     emb = []
+    #     for i in range(0,len(self.dim_list)): 
+    #         if self.adae_config['share']:
+    #             emb.append(self._embeddings(indexes)[:,:int(self.dim_list[i])])
+    #         else:    
+    #             emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
+    #     output = []
+    #     for i in range(0,len(self.dim_list)): 
+    #         output_pre = -1   
+    #         if  ali_way == 'ts':
+    #             # if self.dim_list[i]==self.dim:
+                    
+    #             #     output_pre = emb[i]
+    #             # else:
+    #             output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+               
+    #         elif ali_way=='zp':
+    #              output_pre = self._zero_padding(emb[i])
+    #         output.append(output_pre)
+    #     # 堆叠以便于计算
+    #     head_s = torch.stack(output, dim=1)
+    #     # Gumbal softmax probability
+    #     if if_training:
+    #         Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
+    #     else:
+    #         Gpro =  torch.zeros(probability.shape,device=self.device)
+    #         Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
+    #         Gpro = Gpro.scatter_(1, Gpro_index, 1) 
+            
+    #     #soft selection   
+    #     emb_final = torch.mul(head_s, Gpro.unsqueeze(-1)).sum(dim = 1)
+    #     with torch.no_grad():
+    #         # save fianl emb
+    #         if not self.is_bilevel:
+    #             self._embeddings.weight.data[indexes] = emb_final
+    #             self.choice_emb[indexes] = probability
+
+    #     return emb_final
     def _aligment(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
         """
-        align with gumbal softmax / only be used in auto modef
+        align with gumbal softmax / only for continuous input embeddings size, no ts
         """
-  
-        Tau=max(0.01,1-(5.0e-5)*step)
-        emb = []
-        for i in range(0,len(self.dim_list)): 
-            if self.adae_config['share']:
-                emb.append(self._embeddings(indexes)[:,:int(self.dim_list[i])])
-            else:    
-                emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
-        output = []
-        for i in range(0,len(self.dim_list)): 
-            output_pre = -1   
-            if  ali_way == 'ts':
-                # if self.dim_list[i]==self.dim:
-                    
-                #     output_pre = emb[i]
-                # else:
-                output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
-               
-            elif ali_way=='zp':
-                 output_pre = self._zero_padding(emb[i])
-            output.append(output_pre)
-        # 堆叠以便于计算
-        head_s = torch.stack(output, dim=1)
-        # Gumbal softmax probability
+        Tau=max(0.5,1*np.exp(-0.00003*step))
         if if_training:
-            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=False)
-        else:
-            Gpro =  torch.zeros(probability.shape,device=self.device)
-            Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
-            Gpro = Gpro.scatter_(1, Gpro_index, 1) 
-            
-        #soft selection   
-        emb_final = torch.mul(head_s, Gpro.unsqueeze(-1)).sum(dim = 1)
-        with torch.no_grad():
-            # save fianl emb
-            if not self.is_bilevel:
-                self._embeddings.weight.data[indexes] = emb_final
-                self.choice_emb[indexes] = probability
-
-        return emb_final
-    
-    def _aligment_cie(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
-        """
-        align with gumbal softmax / only for continuous input embeddings size
-        """
-        Tau=max(0.01,1-(5.0e-5)*step)
-        if if_training:
-            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=False)
+            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
             # Gpro = torch.softmax(probability, dim = -1)
         else:
             Gpro =  torch.zeros(probability.shape,device=self.device)
             Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
             Gpro = Gpro.scatter_(1, Gpro_index, 1) 
         mask = torch.matmul(Gpro,self.mask)
+        a = self.adae_config['padding']
+        paddings = (torch.ones(mask.shape[0],mask.shape[1],device=self.device)-mask)*a
+        emb = self._embeddings(indexes)
+        emb_final = emb*mask +paddings
+        with torch.no_grad():
+            # save fianl emb
+            if not self.is_bilevel:
+                self._embeddings.weight.data[indexes] = emb_final
+                self.choice_emb[indexes] = probability
+        return emb_final
+    def _aligment_cie(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
+        """
+        align with gumbal softmax / only for continuous input embeddings size
+        """
+        Tau=max(0.5,1*np.exp(-0.00003*step))
+        if if_training:
+            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
+            # Gpro = torch.softmax(probability, dim = -1)
+        else:
+            Gpro =  torch.zeros(probability.shape,device=self.device)
+            Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
+            Gpro = Gpro.scatter_(1, Gpro_index, 1) 
+        mask = torch.matmul(Gpro,self.mask)
+        # tmp = torch.argmax(self.choice_emb, dim =-1)
+        # d  = {}
+        # statics the unique value and its nums in tmp
+        # for i in range(len(tmp)):
+        #     if tmp[i].item() in d:
+        #         d[tmp[i].item()] += 1
+        #     else:
+        #         d[tmp[i].item()] = 1
+        # print(tmp[:10])
+        # self.config.log("choice:{}".format(tmp))
+        # sleep(1000)
         # mask = torch.zeros((Gpro.shape[0],Gpro.shape[1]),device=self.device)
-        # mask[:,64]=1
+        # mask[:,127]=1
         # mask = torch.matmul(mask,self.mask)
         # if probability.shape[0]==512:
         #     ans = 0
@@ -539,8 +577,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
             # probability = min(1, (frequency - turning_point) / (turning_point * 2))
             probability= 1
 
-        # return [1-probability,probability]
-        return [1,0]
+        return [1-probability,probability]
+        # return [1,0]
 
 
 
@@ -573,7 +611,7 @@ class Picker(nn.Module):
         # nn.init.xavier_uniform_(self.FC3.weight.data)  
         self.Picker = nn.Sequential(
             self.FC1,
-            nn.Dropout(0.5),
+            # nn.Dropout(0.5),
             nn.ReLU(),
             self.FC2,
             # nn.Dropout(0.5),

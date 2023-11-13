@@ -16,6 +16,8 @@ eval:
   trace_level: example
 import:
 - distmult
+- multi_lookup_embedder
+- AdaE
 - reciprocal_relations_model
 lookup_embedder:
   dim: 512
@@ -60,3 +62,21 @@ valid:
       epochs: 50
       metric_value: 0.05
     patience: 10
+
+AdaE_config:
+  adae: True
+  bi-level: False
+  share: False
+  type: '1vsall'
+  ali_way: 'zp'
+  
+  # train_mode: ['rank','auto','fix','original']
+  train_mode: 'rank'
+  dim_list: [128,128]
+  choice_list: [0.2]
+  s_u: 2
+  ratio: 1.0
+  urolled: False
+  t_s: 128
+  lr_p: 0.1825
+  device: 'cuda:0'

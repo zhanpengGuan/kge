@@ -96,7 +96,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                 else:
                     embeddings_params_e = list( map( id, self.model._entity_embedder._embeddings.parameters() ) )
                     embeddings_params_r = list( map( id, self.model._relation_embedder._embeddings.parameters() ) )
-                if self.adae_config['cie']:
+                if self.adae_config['share']:
                     base_params = filter(lambda p: id(p) not in params_p_id, self.model.parameters())
                 else:                     
                     base_params = filter(lambda p: id(p) not in embeddings_params_r+embeddings_params_e+params_p_id, self.model.parameters())
@@ -283,7 +283,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                 s_u = self.adae_config['s_u']
                 triples_t, triples_v = None, None
                 #因为loader的要加载完再加一
-                if (self.batch_index+1)%s_u==0:
+                if (self.batch_index+1)%s_u==1:
                     # split data for darts
                     # triples_t = triples[:int(ratio*triples.shape[0])]
                     triples_t = triples[:l_ratio]
@@ -359,11 +359,11 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                         # architecture的更新
                         
                         if self.adae_config['train_mode'] in ['auto']:
-                            self.optimizer_p.zero_grad()#清除上一步的残余更新参数值
-                            if not self.adae_config['cie']:   
+                            # self.optimizer_p.zero_grad()#清除上一步的残余更新参数值
+                            # if not self.adae_config['cie']:   
                                 
                                 #对α进行更新，对应伪代码的第一步，也就是用公式6
-                                if batch_index % self.adae_config['s_u'] == 0:
+                                if batch_index % self.adae_config['s_u'] == 1:
                                     self.architect.step(batch_index, batch_t, batch_v, self.adae_config['lr_p'], self.optimizer,self.adae_config['urolled'])
                             
                        
@@ -469,8 +469,23 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
             batch_optimizer_time = -time.time()
             if not self.is_forward_only:
                 self.optimizer.step()
-                if self.adae_config['cie']:
-                    self.optimizer_p.step() 
+                # if self.adae_config['cie']:
+                #     self.optimizer_p.step() 
+            # if batch_index% 100==0:
+            #     print('\n')
+            #     tmp = torch.argmax(self.model._entity_embedder.choice_emb,dim=-1)
+            #     d  = {}
+            #     # statics the unique value and its nums in tmp
+            #     for i in range(len(tmp)):
+            #         if tmp[i].item() in d:
+            #             d[tmp[i].item()] += 1
+            #         else:
+            #             d[tmp[i].item()] = 1
+            #     # print nonzero value in d with  
+            #     for k,v in d.items():
+            #         if v!=0:
+            #             print("dim:{},nums:{}\n".format(k,v))   
+
             batch_optimizer_time += time.time()
             # update batch trace with the results
             self.current_trace["batch"].update(

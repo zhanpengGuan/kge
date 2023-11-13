@@ -226,7 +226,13 @@ wait
 
 
 ## yago3-10
+
+wait
+# kge start models/YAGO/distmult.yaml --job.device cuda:1 --lookup_embedder.dim 256 --train.type '1vsAll' &
+# kge start models/YAGO/distmult.yaml --job.device cuda:2 --lookup_embedder.dim 256 --train.type 'KvsAll' &
+# wait
 # python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:1 "[96,128]" 0.2258 0.0 "[0.2]" 128 &
+# python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:2 "[96,128]" 0.5 0.0 "[0.2]" 128 &
 # python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:6 "[96,128]" 0.5 0.0 "[0.2]" 128 &
 # python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:7 "[96,128]" 0.5 0.0 "[0.5]" 128 &
 # python kge/cli_debug.py models/YAGO/AdaE_rank.yaml cuda:5 "[96,128]" 0.5 0.0 "[0.8]" 128 &
@@ -237,9 +243,11 @@ wait
 
 
 
-python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:2 '[1,80]'  0.526 0.359 '[0.2]' 128 2 0.05 &
-python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:3 '[1,80]'  0.526 0.359 '[0.2]' 128 2 0.5 &
-python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:3 '[1,80]'  0.526 0.359 '[0.2]' 128 2 0.5 &
+python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:7 &
+wait
+python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:7  '[64,80]' &
+# python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:3 '[1,80]'  0.05 0.359 '[0.2]' 128 2 0.05 &
+# python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:3 '[1,80]'  0.01 0.359 '[0.2]' 128 2 0.05 &
 # python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:4 '[1,80]'  0.526 0.359 '[0.2]' 128 2 0.05 &
 wait
 # python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:4 '[1,80]'  0.526 0.359 '[0.2,0.5,0.7]' 128 2 0.05 &

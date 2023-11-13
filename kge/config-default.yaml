@@ -42,11 +42,11 @@ random_seed:
   # their own seed specified. The actual seed used computed from the value given
   # here and the name of the PRNG (e.g., python, torch, ...). If -1, disable
   # default seeding.
-  default: 42
-  python: 42
-  torch: 42
-  numpy: 42
-  numba: 42
+  default: -1
+  python: -1
+  torch: -1
+  numpy: -1
+  numba: -1
 
 
 ## DATASET #####################################################################

@@ -151,28 +151,28 @@ def main():
     if debug:
         rank = True
         if rank:
-            dim_list = eval(str(args1[2])) if len(args1)>2 else [64,128]
+            dim_list = eval(str(args1[2])) if len(args1)>2 else [40,60,80,128]
             # dim = dim_list[-1]
         # fix
         else:
             dim = args1[2] if len(args1)>2 else 128
-        lr = args1[3] if len(args1)>3 else "0.55"
+        lr = args1[3] if len(args1)>3 else "0.525" 
         dropout = args1[4] if len(args1)>4 else "0.3598825817257166"
 
-        choice_list = eval(str(args1[5])) if len(args1)>5 else [0.2]
+        choice_list = eval(str(args1[5])) if len(args1)>5 else [-1]
         t_s = args1[6] if len(args1)>6 else 128
         # auto
-        s_u =  args1[7] if len(args1)>7 else 3
-        lr_p = args1[8] if len(args1)>8 else 0.05
+        s_u =  args1[7] if len(args1)>7 else 2
+        lr_p = args1[8] if len(args1)>8 else 0.001
 
 
     # now parse the arguments
     parser = create_parser(config)
     
-    # test = True
-    test = False
+    test = True
+    # test = False
     if test:
-        args, unknown_args = parser.parse_known_args(("test?local/yago3-10/experiments/20231102-074855-complex-512-0.22584037828361303").split("?"))
+        args, unknown_args = parser.parse_known_args(("test?local/wnrr/experiments/20231109-054730-transe-512-0.2532720169185861-negative_sampling-reciprocal_relations_model").split("?"))
     else:
         args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
     # args, unknown_args = parser.parse_known_args(("test?local/experiments/fb15k-237/20231012-055709-AdaE_rank-rank-noshare-[0.999]-[64, 256]-ts-nots256--256-0.5-0.5").split("?"))

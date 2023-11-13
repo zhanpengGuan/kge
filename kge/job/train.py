@@ -206,19 +206,20 @@ class TrainingJob(TrainingOrEvaluationJob):
             trace_entry = self.run_epoch()
             self.config.log("Finished epoch {}.".format(self.epoch))
             self.config.log("\n")
-            if self.adae_config['train_mode'] =='auto':
-                if self.adae_config['cie']:
-                    tmp = torch.argmax(self.model._entity_embedder.choice_emb, dim =-1)
-                    self.config.log("choice:{}".format(tmp))
-                    # for m in range(self.model._entity_embedder.dim):
-                    #     self.config.log(
-                    #             "dim={} nums={}".format(m,
-                    #     sum(tmp==m)))
-                else:
-                    for m in range(len(self.adae_config['dim_list'])):
-                        self.config.log(
-                                "dim={} nums={}".format(self.adae_config['dim_list'][m],
-                        sum(torch.argmax(self.model._entity_embedder.choice_emb, dim =-1)==m)))
+            if hasattr(self, "adae_config"):
+                if self.adae_config['train_mode'] =='auto':
+                    if self.adae_config['cie']:
+                        tmp = torch.argmax(self.model._entity_embedder.choice_emb, dim =-1)
+                        self.config.log("choice:{}".format(tmp[0:15]))
+                        # for m in range(self.model._entity_embedder.dim):
+                        #     self.config.log(
+                        #             "dim={} nums={}".format(m,
+                        #     sum(tmp==m)))
+                    else:
+                        for m in range(len(self.adae_config['dim_list'])):
+                            self.config.log(
+                                    "dim={} nums={}".format(self.adae_config['dim_list'][m],
+                            sum(torch.argmax(self.model._entity_embedder.choice_emb, dim =-1)==m)))
             # for m in range(len(self.adae_config['dim_list'])):
             #     self.config.log(
             #             "dim={} nums={}".format(self.adae_config['dim_list'][m],

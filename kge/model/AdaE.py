@@ -15,7 +15,7 @@ SLOTS = [0, 1, 2]
 S, P, O = SLOTS
 SLOT_STR = ["s", "p", "o"]
 
-class AdaE(ReciprocalRelationsModel):
+class AdaE(KgeModel):
     r"""Implementation of the AdaE KGE model."""
 
     def __init__(
@@ -26,21 +26,48 @@ class AdaE(ReciprocalRelationsModel):
         init_for_load_only=False,
     ):
         
-        super().__init__(config, dataset, configuration_key, init_for_load_only)
-        self.device = self.config.get("job.device")
-        self._sampler = KgeSampler.create(config, "negative_sampling", dataset)
-        self._max_subbatch_size: int = config.get("train.subbatch_size")
-        self.loss = KgeLoss.create(config)
-        self.is_forward_only = init_for_load_only
-        self.type = config.options['AdaE_config']['type']
+        
+      
     # def get_s_embedder(self) -> KgeEmbedder:
     #         return self._multi_entity_embedder
     # def get_o_embedder(self) -> KgeEmbedder:
     #         return self._multi_entity_embedder
     # def get_p_embedder(self) -> KgeEmbedder:
     #         return self._multi_relation_embedder
+        self._init_configuration(config, configuration_key)
+        alt_dataset = dataset.shallow_copy()
+        base_model = KgeModel.create(
+            config=config,
+            dataset=alt_dataset,
+            configuration_key=self.configuration_key + ".base_model",
+            init_for_load_only=init_for_load_only,
+        )
+
+        # Initialize this model
+        super().__init__(
+            config=config,
+            dataset=dataset,
+            scorer=base_model.get_scorer(),
+            create_embedders=False,
+            init_for_load_only=init_for_load_only,
+        )
 
 
+        self._base_model = base_model
+        # TODO change entity_embedder assignment to sub and obj embedders when support
+        # for that is added
+        self._entity_embedder = self._base_model.get_s_embedder()
+        self._relation_embedder = self._base_model.get_p_embedder()
+        self.device = self.config.get("job.device")
+        self._sampler = KgeSampler.create(config, "negative_sampling", dataset)
+        self._max_subbatch_size: int = config.get("train.subbatch_size")
+        self.loss = KgeLoss.create(config)
+        self.is_forward_only = init_for_load_only
+        self.type = config.options['AdaE_config']['type']
+
+
+    def prepare_job(self, job, **kwargs):
+        self._base_model.prepare_job(job, **kwargs)
     def _loss(self, batch_index, batch, is_arch = True):
         if  self.type =='ng_sample':
             return self._loss_ng(batch_index, batch,is_arch)

@@ -4,7 +4,7 @@ dataset:
   name: wnrr
 distmult:
   entity_embedder:
-    dropout: 0.3667933782666931
+    dropout: -0.3667933782666931
     regularize_weight: 2.504743872791287e-12
   relation_embedder:
     dropout: 0.5
