@@ -659,7 +659,7 @@ class Picker(nn.Module):
             
         # else:
         #     nn.init.uniform_(tensor=self.bucket.weight.data,a=-0.281)
-        self.bucket.weight.data[:,-1]=1
+        self.bucket.weight.data[:,0]=1
     #
     def forward(self, input):
         # 上次的emb，离散选择
