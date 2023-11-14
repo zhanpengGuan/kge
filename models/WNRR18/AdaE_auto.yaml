@@ -87,4 +87,5 @@ AdaE_config:
   t_s: 128
   lr_p: 0.001
   device: 'cuda:0'
+  no_picker: True
   #目前device没用

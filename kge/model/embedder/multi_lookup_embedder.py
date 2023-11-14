@@ -277,11 +277,10 @@ class Multi_LookupEmbedder(KgeEmbedder):
                     self.mask =  torch.zeros(len(self.dim_list),self.dim,device=self.device)
                     for i, k in enumerate(self.dim_list):
                         self.mask[i, :k] = 1
-
-                    
+            self.choice_emb[:,-1] = 1         
             
             self.t_s = self.adae_config['t_s']*2
-            nn.init.uniform_(tensor=self.choice_emb)
+            
 
             
             
@@ -339,13 +338,18 @@ class Multi_LookupEmbedder(KgeEmbedder):
             elif self.adae_config['train_mode'] == 'auto':
                 # rank means use learned choice of dim with each entity 
                 if if_training:
-                    pro = self._picker(indexes)
+                    if self.adae_config['no_picker']:
+                        # frequency caterage
+                        pro = self.picker.bucket(self.rank[indexes])
+                    else:
+                        pro = self._picker(indexes)
                 else:
                     pro = self._picker_fix(indexes)
+                
                 if self.adae_config['cie']:
                     emb = self._aligment_cie(indexes, if_training, probability=pro, ali_way=self.adae_config['ali_way'],step = step)
                 else:
-                    emb = self._aligment(indexes, if_training, probability=pro, ali_way=self.adae_config['ali_way'],step = step)
+                    emb = self._aligment_zp(indexes, if_training, probability=pro, ali_way=self.adae_config['ali_way'],step = step)
 
 
         return emb
@@ -541,6 +545,30 @@ class Multi_LookupEmbedder(KgeEmbedder):
 
         return emb_final
 
+    def _aligment_zp(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
+        """
+        align with gumbal softmax / only for continuous input embeddings size in dim_list 
+        """
+        Tau=max(0.5,1*np.exp(-0.00003*step))
+        if if_training:
+            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
+            # Gpro = torch.softmax(probability, dim = -1)
+        else:
+            Gpro =  torch.zeros(probability.shape,device=self.device)
+            Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
+            Gpro = Gpro.scatter_(1, Gpro_index, 1) 
+        mask = torch.matmul(Gpro,self.mask)
+        a = self.adae_config['padding']
+        paddings = (torch.ones(mask.shape[0],mask.shape[1],device=self.device)-mask)*a
+        emb = self._embeddings(indexes) 
+        emb_final = emb*mask +paddings
+        with torch.no_grad():
+            if not self.is_bilevel:
+                self._embeddings.weight.data[indexes] = emb_final
+                self.choice_emb[indexes] = probability
+
+        return emb_final
+    
     def _zero_padding(self, emb):        
         padding_size = abs(emb.shape[1]-self.dim)
         if self.space=='complex':
@@ -595,7 +623,11 @@ class Picker(nn.Module):
         self.device = config.get("job.device")
         self.dim: int = dim
         self.dim_list_size = len(self.adae_config['dim_list'])
-        self.dim_bucket = int(32)
+
+        if self.adae_config['no_picker']:
+            self.dim_bucket = self.dim_list_size
+        else:
+            self.dim_bucket = int(32)
         if self.adae_config['cie']:
             self.dim_bucket = 128
             #目前的输入之后fre
@@ -622,7 +654,12 @@ class Picker(nn.Module):
         # bucket emb
         self.k = bucket_size
         self.bucket = nn.Embedding(self.k, self.dim_bucket).to(self.device)
-        nn.init.uniform_(tensor=self.bucket.weight.data,a=-0.281)
+        # if self.adae_config['no_picker']:
+        self.bucket.weight.data= torch.zeros(self.k,self.dim_bucket,device=self.device)
+            
+        # else:
+        #     nn.init.uniform_(tensor=self.bucket.weight.data,a=-0.281)
+        self.bucket.weight.data[:,-1]=1
     #
     def forward(self, input):
         # 上次的emb，离散选择

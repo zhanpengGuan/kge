@@ -722,7 +722,7 @@ AdaE_config:
   type: 'ng_sample'
   folder: None 
   #代表着retain的文件夹 
-
+  no_picker: False
   
 # Options for negative sampling training (train.type=="negative_sampling")
 darts:
