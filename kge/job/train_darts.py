@@ -80,6 +80,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
             elif self.adae_config['train_mode'] in ['rank']:
                 pass
             elif self.adae_config['train_mode'] in ['auto']:
+               
                 picker_e = self.model._entity_embedder.picker
                 picker_r = self.model._relation_embedder.picker
                 picker_e_low = self.model._entity_embedder.picker_low
@@ -111,7 +112,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                     group["initial_lr"]=group["lr"]
 
                 
-                self.optimizer_p = opt(
+                self.optimizer_p = torch.optim.SGD(
                     [{'params':params_p,'name':'default'}],  lr =  self.adae_config['lr_p']
                         ) #用来更新theta的optimizer
                 self.kge_lr_scheduler_p = KgeLRScheduler(config, self.optimizer_p)
@@ -363,9 +364,9 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                             # if not self.adae_config['cie']:   
                                 
                                 #对α进行更新，对应伪代码的第一步，也就是用公式6
-                                if batch_index % self.adae_config['s_u'] == 1:
-                                    self.architect.step(batch_index, batch_t, batch_v, self.adae_config['lr_p'], self.optimizer,self.adae_config['urolled'])
-                            
+                            if batch_index % self.adae_config['s_u'] == 1:
+                                self.architect.step(batch_index, batch_t, batch_v, self.adae_config['lr_p'], self.optimizer,self.adae_config['urolled'])
+                        
                        
 
                            
@@ -470,7 +471,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
             if not self.is_forward_only:
                 self.optimizer.step()
                 # if self.adae_config['cie']:
-                #     self.optimizer_p.step() 
+                # self.optimizer_p.step() 
             # if batch_index% 100==0:
             #     print('\n')
             #     tmp = torch.argmax(self.model._entity_embedder.choice_emb,dim=-1)

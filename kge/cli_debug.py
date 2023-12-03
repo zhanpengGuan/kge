@@ -151,16 +151,16 @@ def main():
     if debug:
         rank = True
         if rank:
-            dim_list = eval(str(args1[2])) if len(args1)>2 else [64,128]
+            dim_list = eval(str(args1[2])) if len(args1)>2 else [64,80,48]
             # dim = dim_list[-1]
         # fix
         else:
-            dim = args1[2] if len(args1)>2 else 128
-        lr = args1[3] if len(args1)>3 else "0.525" 
+            dim = args1[2] if len(args1)>2 else 80
+        lr = args1[3] if len(args1)>3 else "0.53" 
         dropout = args1[4] if len(args1)>4 else "0.36"
 
         choice_list = eval(str(args1[5])) if len(args1)>5 else [-1]
-        t_s = args1[6] if len(args1)>6 else 128
+        t_s = args1[6] if len(args1)>6 else 80
         # auto
         s_u =  args1[7] if len(args1)>7 else 2
         lr_p = args1[8] if len(args1)>8 else 0.01
@@ -290,12 +290,12 @@ def main():
                 last_str += '-' +str(config.get("AdaE_config.padding"))+ '-'
            
             if train_mode not in  ["original", "fix"]:
-                last_str+="-share" if config.get("AdaE_config.share") == True else "-noshare"
+                # last_str+="-share" if config.get("AdaE_config.share") == True else "-noshare"
                 last_str+="-"+ str(config.get("AdaE_config.choice_list"))+"-"+str(config.get('AdaE_config.dim_list'))
-                last_str +="-"+str(config.get("AdaE_config.ali_way"))+"-(a)-"
+                # last_str +="-"+str(config.get("AdaE_config.ali_way"))+"-(a)-"
                 last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
                 # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
-                last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+"-"+str(config.get("complex"+'.entity_embedder.dropout'))
+                # last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+"-"+str(config.get("complex"+'.entity_embedder.dropout'))
                 
             if train_mode  in  ["fix"]:
                 last_str+="-"+ str(config.get("multi_lookup_embedder.dim"))+"-multilayer-1vsall-"

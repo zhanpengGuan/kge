@@ -267,16 +267,25 @@ class Multi_LookupEmbedder(KgeEmbedder):
             if train_mode in ['auto']:
                 # high, low twins weight
                 self.rank_e_weight = torch.tensor([self.generate_probability_distribution(x) for x in self.count_e],device=self.device)
-                self.picker = Picker(self.config, dataset, self.dim, max(self.rank)+1)
-                self.picker_low = Picker(self.config, dataset, self.dim, max(self.rank)+1 )
+                self.picker = Picker(self.config, dataset, self.dim, max(self.rank)+1,self.space)
+                self.picker_low = Picker(self.config, dataset, self.dim, max(self.rank)+1,self.space)
+                
                 
                 if self.adae_config['cie']:
                     self.choice_emb = torch.zeros(self.vocab_size, self.dim).to(self.device)
-                    self.mask =  torch.tril(torch.ones(self.dim,self.dim,device=self.device))
+                    if self.space=='complex':
+                        half_size = int(self.dim/2)
+                        self.choice_emb = torch.zeros(self.vocab_size, half_size).to(self.device)
+                        self.mask =  torch.cat( (torch.tril(torch.ones(half_size,half_size,device=self.device)),torch.tril(torch.ones(half_size,half_size,device=self.device)) ),dim = -1)
+                    else:
+                        self.mask =  torch.tril(torch.ones(self.dim,self.dim,device=self.device))
                 else:
                     self.mask =  torch.zeros(len(self.dim_list),self.dim,device=self.device)
                     for i, k in enumerate(self.dim_list):
-                        self.mask[i, :k] = 1
+                        hk = int(k/2)
+                        half_size = int(self.dim/2)
+                        self.mask[i, :hk] = 1
+                        self.mask[i, half_size:half_size+hk] = 1
             self.choice_emb[:,-1] = 1         
             
             self.t_s = self.adae_config['t_s']*2
@@ -430,73 +439,73 @@ class Multi_LookupEmbedder(KgeEmbedder):
         return emb_final
   
     
+    def _aligment(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
+        """
+        align with gumbal softmax / only be used in auto modef
+        """
+  
+        Tau=max(0.01,1*np.exp(-0.00003*step))
+        emb = []
+        for i in range(0,len(self.dim_list)): 
+            if self.adae_config['share']:
+                emb.append(self._embeddings(indexes)[:,:int(self.dim_list[i])])
+            else:    
+                emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
+        output = []
+        for i in range(0,len(self.dim_list)): 
+            output_pre = -1   
+            if  ali_way == 'ts':
+                # if self.dim_list[i]==self.dim:
+                    
+                #     output_pre = emb[i]
+                # else:
+                output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
+               
+            elif ali_way=='zp':
+                 output_pre = self._zero_padding(emb[i])
+            output.append(output_pre)
+        # 堆叠以便于计算
+        head_s = torch.stack(output, dim=1)
+        # Gumbal softmax probability
+        if if_training:
+            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
+        else:
+            Gpro =  torch.zeros(probability.shape,device=self.device)
+            Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
+            Gpro = Gpro.scatter_(1, Gpro_index, 1) 
+            
+        #soft selection   
+        emb_final = torch.mul(head_s, Gpro.unsqueeze(-1)).sum(dim = 1)
+        with torch.no_grad():
+            # save fianl emb
+            if not self.is_bilevel:
+                # self._embeddings.weight.data[indexes] = emb_final
+                self.choice_emb[indexes] = probability
+
+        return emb_final
     # def _aligment(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
     #     """
-    #     align with gumbal softmax / only be used in auto modef
+    #     align with gumbal softmax / only for continuous input embeddings size, no ts
     #     """
-  
-    #     Tau=max(0.01,1*np.exp(-0.000003*step))
-    #     emb = []
-    #     for i in range(0,len(self.dim_list)): 
-    #         if self.adae_config['share']:
-    #             emb.append(self._embeddings(indexes)[:,:int(self.dim_list[i])])
-    #         else:    
-    #             emb.append(self._embeddings_list[i][indexes])  # [bs, 1, dim]
-    #     output = []
-    #     for i in range(0,len(self.dim_list)): 
-    #         output_pre = -1   
-    #         if  ali_way == 'ts':
-    #             # if self.dim_list[i]==self.dim:
-                    
-    #             #     output_pre = emb[i]
-    #             # else:
-    #             output_pre = (self.Selection(self.Transform_layer_list[i](emb[i])))
-               
-    #         elif ali_way=='zp':
-    #              output_pre = self._zero_padding(emb[i])
-    #         output.append(output_pre)
-    #     # 堆叠以便于计算
-    #     head_s = torch.stack(output, dim=1)
-    #     # Gumbal softmax probability
+    #     Tau=max(0.5,1*np.exp(-0.00003*step))
     #     if if_training:
     #         Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
+    #         # Gpro = torch.softmax(probability, dim = -1)
     #     else:
     #         Gpro =  torch.zeros(probability.shape,device=self.device)
     #         Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
     #         Gpro = Gpro.scatter_(1, Gpro_index, 1) 
-            
-    #     #soft selection   
-    #     emb_final = torch.mul(head_s, Gpro.unsqueeze(-1)).sum(dim = 1)
+    #     mask = torch.matmul(Gpro,self.mask)
+    #     a = self.adae_config['padding']
+    #     paddings = (torch.ones(mask.shape[0],mask.shape[1],device=self.device)-mask)*a
+    #     emb = self._embeddings(indexes)
+    #     emb_final = emb*mask +paddings
     #     with torch.no_grad():
     #         # save fianl emb
     #         if not self.is_bilevel:
     #             self._embeddings.weight.data[indexes] = emb_final
     #             self.choice_emb[indexes] = probability
-
     #     return emb_final
-    def _aligment(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
-        """
-        align with gumbal softmax / only for continuous input embeddings size, no ts
-        """
-        Tau=max(0.5,1*np.exp(-0.00003*step))
-        if if_training:
-            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
-            # Gpro = torch.softmax(probability, dim = -1)
-        else:
-            Gpro =  torch.zeros(probability.shape,device=self.device)
-            Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
-            Gpro = Gpro.scatter_(1, Gpro_index, 1) 
-        mask = torch.matmul(Gpro,self.mask)
-        a = self.adae_config['padding']
-        paddings = (torch.ones(mask.shape[0],mask.shape[1],device=self.device)-mask)*a
-        emb = self._embeddings(indexes)
-        emb_final = emb*mask +paddings
-        with torch.no_grad():
-            # save fianl emb
-            if not self.is_bilevel:
-                self._embeddings.weight.data[indexes] = emb_final
-                self.choice_emb[indexes] = probability
-        return emb_final
     def _aligment_cie(self, indexes,  if_training, probability=None,  ali_way='ts',step = 10000):
         """
         align with gumbal softmax / only for continuous input embeddings size
@@ -540,7 +549,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         with torch.no_grad():
             # save fianl emb
             if not self.is_bilevel:
-                self._embeddings.weight.data[indexes] = emb_final
+                # self._embeddings.weight.data[indexes] = emb_final
                 self.choice_emb[indexes] = probability
 
         return emb_final
@@ -549,22 +558,28 @@ class Multi_LookupEmbedder(KgeEmbedder):
         """
         align with gumbal softmax / only for continuous input embeddings size in dim_list 
         """
-        Tau=max(0.5,1*np.exp(-0.00003*step))
+        # Tau=max(0.005,1*np.exp(-0.00003*step))
+
+        Tau = 1
         if if_training:
-            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
+            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=False)
             # Gpro = torch.softmax(probability, dim = -1)
         else:
             Gpro =  torch.zeros(probability.shape,device=self.device)
             Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
             Gpro = Gpro.scatter_(1, Gpro_index, 1) 
+        emb = self._embeddings(indexes)
+      
+
+        
         mask = torch.matmul(Gpro,self.mask)
         a = self.adae_config['padding']
         paddings = (torch.ones(mask.shape[0],mask.shape[1],device=self.device)-mask)*a
-        emb = self._embeddings(indexes) 
+        # emb_final = emb
         emb_final = emb*mask +paddings
         with torch.no_grad():
             if not self.is_bilevel:
-                self._embeddings.weight.data[indexes] = emb_final
+                # self._embeddings.weight.data[indexes] = emb_final
                 self.choice_emb[indexes] = probability
 
         return emb_final
@@ -598,15 +613,15 @@ class Multi_LookupEmbedder(KgeEmbedder):
 
         if frequency <= turning_point:
             # 低频部分，可以根据需要自定义低频部分的概率分布
-            # probability = frequency / (2 * turning_point)
-            probability = 0
+            probability = frequency / (2 * turning_point)
+            # probability = 0
         else:
             # 高频部分，可以根据需要自定义高频部分的概率分布
-            # probability = min(1, (frequency - turning_point) / (turning_point * 2))
-            probability= 1
+            probability = min(1, (frequency - turning_point) / (turning_point * 2))
+            # probability= 1
 
-        return [1-probability,probability]
-        # return [1,0]
+        # return [1-probability,probability]
+        return [0,1]
 
 
 
@@ -616,12 +631,13 @@ class Multi_LookupEmbedder(KgeEmbedder):
 
 
 class Picker(nn.Module):
-    def __init__( self, config: Config, dataset: Dataset, dim, bucket_size) -> None:
+    def __init__( self, config: Config, dataset: Dataset, dim, bucket_size,space = 'complex') -> None:
         # # father init
         super(Picker, self).__init__()
         self.adae_config = config.options['AdaE_config']
         self.device = config.get("job.device")
         self.dim: int = dim
+        self.space = space
         self.dim_list_size = len(self.adae_config['dim_list'])
 
         if self.adae_config['no_picker']:
@@ -632,7 +648,11 @@ class Picker(nn.Module):
             self.dim_bucket = 128
             #目前的输入之后fre
             self.FC1 = nn.Linear(self.dim_bucket,self.dim_bucket).to(self.device)
-            self.FC2 = nn.Linear(self.dim_bucket,self.dim).to(self.device)
+            if self.space=='complex':
+                h=int(self.dim/2)
+            else:
+                h=self.dim
+            self.FC2 = nn.Linear(self.dim_bucket,h).to(self.device)
 
         else:  
             self.FC1 = nn.Linear(self.dim_bucket,20).to(self.device)
@@ -654,12 +674,12 @@ class Picker(nn.Module):
         # bucket emb
         self.k = bucket_size
         self.bucket = nn.Embedding(self.k, self.dim_bucket).to(self.device)
-        # if self.adae_config['no_picker']:
-        self.bucket.weight.data= torch.zeros(self.k,self.dim_bucket,device=self.device)
-            
-        # else:
-        #     nn.init.uniform_(tensor=self.bucket.weight.data,a=-0.281)
-        self.bucket.weight.data[:,0]=1
+        if self.adae_config['no_picker']:
+            self.bucket.weight.data= torch.zeros(self.k,self.dim_bucket,device=self.device)
+            self.bucket.weight.data[:,-1]=1
+        else:
+            nn.init.uniform_(tensor=self.bucket.weight.data,a=-0.281)
+        
     #
     def forward(self, input):
         # 上次的emb，离散选择

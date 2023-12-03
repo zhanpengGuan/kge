@@ -8,13 +8,13 @@ complex:
     dropout: 0.3592749142853321
     regularize_weight: 4.5230047706178325e-06
     # pretrain:
-    #   model_filename: 'local/wnrr/experiments/20231025-110544-complex-128/checkpoint_best.pt'
+    #   model_filename: 'local/wnrr/experiments/20231128-141408-complex-80-0.5255808623927111-1vsAll-reciprocal_relations_model/checkpoint_best.pt'
   relation_embedder:
     type: multi_lookup_embedder
     dropout: 0.3112283826796357
     regularize_weight: 4.192985917075565e-10
     # pretrain:
-    #   model_filename: 'local/wnrr/experiments/20231025-110544-complex-128/checkpoint_best.pt'
+    #   model_filename: 'local/wnrr/experiments/20231128-141408-complex-80-0.5255808623927111-1vsAll-reciprocal_relations_model/checkpoint_best.pt'
 dataset:
   name: wnrr
 eval:
@@ -25,7 +25,7 @@ eval:
 
 
 multi_lookup_embedder:
-  dim: 128
+  dim: 80
   initialize: uniform_
   initialize_args:
     normal_:
@@ -55,9 +55,9 @@ train:
     mode: max
     patience: 5
     threshold: 0.0001
-  max_epochs: 400
+  max_epochs: 40
   optimizer_args:
-    lr: 0.5255808623927111
+    lr: 0.523
   type: darts
 valid:
   early_stopping:
@@ -82,10 +82,10 @@ AdaE_config:
   dim_list: [20,40,80,160]
   choice_list: [0.2]
   s_u: 3
-  ratio: 0.5
+  ratio: 0.8
   urolled: False
   t_s: 128
   lr_p: 0.001
   device: 'cuda:0'
-  no_picker: True
+  no_picker: False
   #目前device没用

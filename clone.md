@@ -255,3 +255,12 @@
   pkill -u  guanzp python
   pkill  -u guanzp -f "python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:4"
   
+# 随机选择
+## trick
+ tau=0.001，pretrain,+lr=0.000053，可以好好选 ,
+ 
+
+ 最重要的是温度
+
+ tau=1/ 0.1，pretrain,+lr=0.000053/0.053，soft=false,最重要，可以选
+  tau=1/ 0.1，+lr=0.053，soft=false,最重要，可以选
