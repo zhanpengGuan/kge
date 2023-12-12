@@ -140,7 +140,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         Tau=max(0.01,1*np.exp(-0.0003*self.step))
         pro = self._picker(self.all_indexes)
         Gpro = self.ste(pro, tau=Tau, hard=False) 
-        result = 100*(((self.dim_l*Gpro).sum()/(Gpro.shape[0]*max(self.dim_list))))**2
+        result = 1*(((self.dim_l*Gpro).sum()/(Gpro.shape[0]*max(self.dim_list))))**2
         return result
     def ste(self, logits: Tensor, tau: float = 1, hard: bool = False, eps: float = 1e-10, dim: int = -1) -> Tensor:
   
@@ -668,8 +668,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
             # probability = min(1, (frequency - turning_point) / (turning_point * 2))
             probability= 1
         # 高、低
-        # return [1-probability,probability]
-        return [0,1]
+        return [1-probability,probability]
+        # return [0,1]
 
 
 
@@ -691,7 +691,7 @@ class Picker(nn.Module):
         if self.adae_config['no_picker']:
             self.dim_bucket = self.dim_list_size
         else:
-            self.dim_bucket = int(200)
+            self.dim_bucket = int(128)
         if self.adae_config['cie']:
             self.dim_bucket = 128
             #目前的输入之后fre
@@ -715,7 +715,7 @@ class Picker(nn.Module):
         # nn.init.xavier_uniform_(self.FC3.weight.data)  
         self.Picker = nn.Sequential(
             self.FC1,
-            nn.Dropout(0.5),
+            nn.Dropout(0.2),
             nn.ReLU(),
             self.FC2,
             # nn.Dropout(0.5),
@@ -724,7 +724,7 @@ class Picker(nn.Module):
         ) 
         self.Picker_1 = nn.Sequential(
             self.FC1_1,
-            nn.Dropout(0.5),
+            nn.Dropout(0.2),
             nn.ReLU(),
             self.FC2_1,
             # nn.Dropout(0.5),

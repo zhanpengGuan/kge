@@ -73,8 +73,8 @@ class Architect(object):
   def _backward_step(self, batch_index, batch_v):
     
     loss = self.model._loss(batch_index, batch_v)
-    penalty_m = self.model._entity_embedder.penalty_m()
-    penalty_m.backward()
+    # penalty_m = self.model._entity_embedder.penalty_m()
+    # penalty_m.backward()
     loss.avg_loss.backward()
 
   

@@ -151,7 +151,7 @@ def main():
     if debug:
         rank = True
         if rank:
-            dim_list = eval(str(args1[2])) if len(args1)>2 else [2,2,64,2,80,2,2,2,2]
+            dim_list = eval(str(args1[2])) if len(args1)>2 else [2,4,16,64,96,128]
             # dim = dim_list[-1]
         # fix
         else:
@@ -160,7 +160,7 @@ def main():
         dropout = args1[4] if len(args1)>4 else "0.36"
 
         choice_list = eval(str(args1[5])) if len(args1)>5 else [-1]
-        t_s = args1[6] if len(args1)>6 else 80
+        t_s = args1[6] if len(args1)>6 else 128
         # auto
         s_u =  args1[7] if len(args1)>7 else 2
         lr_p = args1[8] if len(args1)>8 else 0.01
