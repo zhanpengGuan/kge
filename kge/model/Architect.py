@@ -73,6 +73,8 @@ class Architect(object):
   def _backward_step(self, batch_index, batch_v):
     
     loss = self.model._loss(batch_index, batch_v)
+    penalty_m = self.model._entity_embedder.penalty_m()
+    penalty_m.backward()
     loss.avg_loss.backward()
 
   
@@ -161,7 +163,7 @@ class Architect(object):
     a parameter filter for KGE parmeters
     '''
     for name, param in model.named_parameters(recurse=recurse):
-      if  not (name.startswith('_base_model._entity_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
+      if  not ( name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
         
           yield param
   def nKGE_parameters(self,model,recurse: bool = True):
@@ -169,6 +171,6 @@ class Architect(object):
     a named parameter filter for KGE parmeters
     '''
     for name, param in model.named_parameters(recurse=recurse):
-      if  not (name.startswith('_base_model._entity_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder._embeddings.weight') or name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
+      if  not ( name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
         
           yield name, param

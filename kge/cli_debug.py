@@ -144,18 +144,18 @@ def main():
     #
     args1 = sys.argv[1:]
     yaml_name = args1[0] if len(args1)>0 else "models/WNRR18/AdaE_auto.yaml"
-    device = args1[1] if len(args1)>1 else "cuda:1"
+    device = args1[1] if len(args1)>1 else "cuda:6"
     # other hyperparameters
     # rank
     debug = True
     if debug:
         rank = True
         if rank:
-            dim_list = eval(str(args1[2])) if len(args1)>2 else [64,80,48]
+            dim_list = eval(str(args1[2])) if len(args1)>2 else [2,2,64,2,80,2,2,2,2]
             # dim = dim_list[-1]
         # fix
         else:
-            dim = args1[2] if len(args1)>2 else 80
+            dim = args1[2] if len(args1)>2 else 128
         lr = args1[3] if len(args1)>3 else "0.53" 
         dropout = args1[4] if len(args1)>4 else "0.36"
 
@@ -293,7 +293,7 @@ def main():
                 # last_str+="-share" if config.get("AdaE_config.share") == True else "-noshare"
                 last_str+="-"+ str(config.get("AdaE_config.choice_list"))+"-"+str(config.get('AdaE_config.dim_list'))
                 # last_str +="-"+str(config.get("AdaE_config.ali_way"))+"-(a)-"
-                last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
+                last_str +="-"+str(config.get("multi_lookup_embedder.dim"))
                 # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
                 # last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+"-"+str(config.get("complex"+'.entity_embedder.dropout'))
                 
@@ -303,7 +303,7 @@ def main():
                 pass
             if train_mode  in  ["auto"]:
                 last_str+="-"+ str(config.get("AdaE_config.lr_p"))
-                last_str+="-"+ str(config.get("AdaE_config.s_u"))+"-01"
+                last_str+="-"+ str(config.get("AdaE_config.s_u"))+"-2"
             
         if args.folder is None:  # means: set default
             config_name = os.path.splitext(os.path.basename(args.config))[0]

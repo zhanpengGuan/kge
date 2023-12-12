@@ -82,12 +82,12 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
             elif self.adae_config['train_mode'] in ['auto']:
                
                 picker_e = self.model._entity_embedder.picker
-                picker_r = self.model._relation_embedder.picker
-                picker_e_low = self.model._entity_embedder.picker_low
-                picker_r_low = self.model._relation_embedder.picker_low
-                params_p = list(picker_e.bucket.parameters()) + list(picker_e.FC1.parameters())+list(picker_e.FC2.parameters())+list(picker_r.bucket.parameters()) + list(picker_r.FC1.parameters())+list(picker_r.FC2.parameters())+list(picker_e_low.bucket.parameters()) + list(picker_e_low.FC1.parameters())+list(picker_e_low.FC2.parameters())+list(picker_r_low.bucket.parameters()) + list(picker_r_low.FC1.parameters())+list(picker_r_low.FC2.parameters())
+                # picker_r = self.model._relation_embedder.picker
+                # picker_e_low = self.model._entity_embedder.picker_low
+                # picker_r_low = self.model._relation_embedder.picker_low
+                params_p = list(picker_e.bucket.parameters()) + list(picker_e.FC1.parameters())+list(picker_e.FC2.parameters())+ list(picker_e.FC1_1.parameters())+list(picker_e.FC2_1.parameters())
 
-                params_p_id = list(map( id,picker_e.bucket.parameters())) + list(map( id,picker_e.FC1.parameters()))+list(map( id,picker_e.FC2.parameters()))+list(map( id,picker_r.bucket.parameters())) + list(map( id,picker_r.FC1.parameters()))+list(map( id,picker_r.FC2.parameters()))+ list(map( id,picker_e_low.bucket.parameters())) + list(map( id,picker_e_low.FC1.parameters()))+list(map( id,picker_e_low.FC2.parameters()))+list(map( id,picker_r_low.bucket.parameters())) + list(map( id,picker_r_low.FC1.parameters()))+list(map( id,picker_r_low.FC2.parameters()))
+                params_p_id = list(map( id,picker_e.bucket.parameters())) + list(map( id,picker_e.FC1.parameters()))+list(map( id,picker_e.FC2.parameters())) + list(map( id,picker_e.FC1_1.parameters()))+list(map( id,picker_e.FC2_1.parameters()))
 
                 # picker =  {'e':picker_e,'r':picker_r}
                 # learnable_parameters = [param for name, param in vars(picker).items() if isinstance(param, torch.nn.Parameter) and param.requires_grad]
@@ -100,7 +100,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                 if self.adae_config['share']:
                     base_params = filter(lambda p: id(p) not in params_p_id, self.model.parameters())
                 else:                     
-                    base_params = filter(lambda p: id(p) not in embeddings_params_r+embeddings_params_e+params_p_id, self.model.parameters())
+                    base_params = filter(lambda p: id(p) not in embeddings_params_e+params_p_id, self.model.parameters())
 
 
                 opt = getattr(torch.optim, config.get("train.optimizer.default.type"))
@@ -421,7 +421,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                 batch=batch_t,
             )
             batch_forward_time += time.time()
-
+            
             # backward pass on penalties
             batch_backward_time = batch_result.backward_time - time.time()
             penalty = 0.0
@@ -432,9 +432,12 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                 sum_penalties[penalty_key] += penalty_value_torch.item()
             sum_penalty += penalty
             batch_backward_time += time.time()
-
+            
+            # memory loss
+           
+            # print(p_t1-p_t)
             # determine full cost
-            cost_value = batch_result.avg_loss + penalty
+            cost_value = batch_result.avg_loss + penalty 
 
             # abort on nan
             if self.abort_on_nan and math.isnan(cost_value):
@@ -520,13 +523,14 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                     + "{}  batch{: "
                     + str(1 + int(math.ceil(math.log10(len(self.loader)))))
                     + "d}/{}"
-                    + ", avg_loss {:.4E}, penalty {:.4E}, cost {:.4E}, time {:6.2f}s"
+                    + ", avg_loss {:.4E}, penalty {:.4E}, p_m  {:.4E}, cost {:.4E}, time {:6.2f}s"
                     + "\033[K"  # clear to right
                 ).format(
                     self.config.log_prefix,
                     batch_index,
                     len(self.loader) - 1,
                     batch_result.avg_loss,
+                    penalty,
                     penalty,
                     cost_value,
                     batch_result.prepare_time
