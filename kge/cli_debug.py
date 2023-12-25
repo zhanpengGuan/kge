@@ -143,22 +143,21 @@ def main():
     config = Config() 
     #
     args1 = sys.argv[1:]
-    yaml_name = args1[0] if len(args1)>0 else "models/WNRR18/AdaE_auto.yaml"
-    device = args1[1] if len(args1)>1 else "cuda:6"
+    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_auto.yaml"
+    device = args1[1] if len(args1)>1 else "cuda:5"
     # other hyperparameters
     # rank
     debug = True
     if debug:
         rank = True
         if rank:
-            dim_list = eval(str(args1[2])) if len(args1)>2 else [2,4,16,64,96,128]
+            dim_list = eval(str(args1[2])) if len(args1)>2 else [64,128]
             # dim = dim_list[-1]
         # fix
         else:
             dim = args1[2] if len(args1)>2 else 128
-        lr = args1[3] if len(args1)>3 else "0.53" 
-        dropout = args1[4] if len(args1)>4 else "0.36"
-
+        lr = args1[3] if len(args1)>3 else "0.5" 
+        dropout = args1[4] if len(args1)>4 else "0.5"
         choice_list = eval(str(args1[5])) if len(args1)>5 else [-1]
         t_s = args1[6] if len(args1)>6 else 128
         # auto
@@ -172,7 +171,7 @@ def main():
     # test = True
     test = False
     if test:
-        args, unknown_args = parser.parse_known_args(("test?local/wnrr/experiments/20231109-054730-transe-512-0.2532720169185861-negative_sampling-reciprocal_relations_model").split("?"))
+        args, unknown_args = parser.parse_known_args(("test?/home/guanzp/code/AdaE/kge/local/wnrr/auto/20231223-061106-AdaE_autoauto-cie--0.28--[-1]-[64, 128]-256-0.01-2-2").split("?"))
     else:
         args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
     # args, unknown_args = parser.parse_known_args(("test?local/experiments/fb15k-237/20231012-055709-AdaE_rank-rank-noshare-[0.999]-[64, 256]-ts-nots256--256-0.5-0.5").split("?"))
@@ -265,7 +264,7 @@ def main():
         last_str="-"
         if debug:
             train_mode = config.get("AdaE_config.train_mode")
-            last_str = train_mode
+            last_str += train_mode
             config.set('job.device', device)
             # config.set('AdaE_config.lr_trans', lr_trans)
             config.set('train.optimizer.default.args.lr',lr)
@@ -291,19 +290,21 @@ def main():
            
             if train_mode not in  ["original", "fix"]:
                 # last_str+="-share" if config.get("AdaE_config.share") == True else "-noshare"
-                last_str+="-"+ str(config.get("AdaE_config.choice_list"))+"-"+str(config.get('AdaE_config.dim_list'))
+                # last_str+="-"+ str(config.get("AdaE_config.choice_list"))+"-"+str(config.get('AdaE_config.dim_list'))
                 # last_str +="-"+str(config.get("AdaE_config.ali_way"))+"-(a)-"
-                last_str +="-"+str(config.get("multi_lookup_embedder.dim"))
+                last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))
+                last_str +="-soft-"+str(config.get("multi_lookup_embedder.dim"))
                 # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
-                # last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+"-"+str(config.get("complex"+'.entity_embedder.dropout'))
+                last_str+="-drop-"+str(config.get("complex"+'.entity_embedder.dropout'))
                 
             if train_mode  in  ["fix"]:
                 last_str+="-"+ str(config.get("multi_lookup_embedder.dim"))+"-multilayer-1vsall-"
                 last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))
                 pass
             if train_mode  in  ["auto"]:
-                last_str+="-"+ str(config.get("AdaE_config.lr_p"))
-                last_str+="-"+ str(config.get("AdaE_config.s_u"))+"-2"
+                pass
+                # last_str+="-lr_p-"+ str(config.get("AdaE_config.lr_p"))
+                # last_str+="-"+ str(config.get("AdaE_config.s_u"))
             
         if args.folder is None:  # means: set default
             config_name = os.path.splitext(os.path.basename(args.config))[0]
@@ -312,7 +313,7 @@ def main():
                 "local",
                 config.get("dataset.name"),
                 config.get("AdaE_config.train_mode"),
-                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + "-nots"+ last_str
+                config_name + last_str
             )
             
         else:

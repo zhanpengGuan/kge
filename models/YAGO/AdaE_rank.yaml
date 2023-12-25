@@ -5,7 +5,7 @@ import:
 complex:
   entity_embedder:
     type: multi_lookup_embedder
-    dropout: -0.3128825817257166
+    dropout: 0.1
     regularize_weight: 1.0274165130442088e-15
   relation_embedder:
     type: multi_lookup_embedder
@@ -42,7 +42,7 @@ eval:
   trace_level: example
 
 multi_lookup_embedder:
-  dim: 128
+  dim: 192
   initialize: uniform_
   initialize_args:
     normal_:
@@ -89,6 +89,9 @@ valid:
       epochs: 10
       metric_value: 0.1
     patience: 10
+
+job:
+  device: cuda:7
 AdaE_config:
   adae: True
   bi-level: False
@@ -97,12 +100,12 @@ AdaE_config:
   ali_way: 'zp'
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'rank'
-  dim_list: [128,128]
-  choice_list: [0.2]
+  dim_list: [128,192]
+  choice_list: [0.5]
   s_u: 2
   ratio: 1.0
   urolled: False
   t_s: 128
   lr_p: 0.1825
-  device: 'cuda:0'
+  device: 'cuda:3'
   #目前device没用

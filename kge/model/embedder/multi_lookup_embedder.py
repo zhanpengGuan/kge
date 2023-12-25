@@ -139,8 +139,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
        
         Tau=max(0.01,1*np.exp(-0.0003*self.step))
         pro = self._picker(self.all_indexes)
-        Gpro = self.ste(pro, tau=Tau, hard=False) 
-        result = 1*(((self.dim_l*Gpro).sum()/(Gpro.shape[0]*max(self.dim_list))))**2
+        Gpro = self.ste(pro, tau=Tau, hard=False)
+        
+        if self.adae_config['cie']:
+            result = 1*((2*(self.dim_l*Gpro).sum()/(Gpro.shape[0]*max(self.dim_list))))
+        else:
+            result = 1*(((self.dim_l*Gpro).sum()/(Gpro.shape[0]*max(self.dim_list)))) 
         return result
     def ste(self, logits: Tensor, tau: float = 1, hard: bool = False, eps: float = 1e-10, dim: int = -1) -> Tensor:
   
@@ -293,6 +297,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 self.rank_e_weight = torch.tensor([self.generate_probability_distribution(x) for x in self.count_e],device=self.device)
                 if self.configuration_key.split('.')[-1] == 'entity_embedder':
                     self.picker = Picker(self.config, dataset, self.dim, max(self.rank)+1,self.space)
+                    if self.adae_config['cie']:
+                        self.dim_list = [i for i in range(1,int((self.dim)/2+1))]
                     self.all_indexes = torch.arange(
                         self.vocab_size, dtype=torch.long, device=self.device
                         )
@@ -302,6 +308,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
                 
                 if self.adae_config['cie']:
                     self.choice_emb = torch.zeros(self.vocab_size, self.dim).to(self.device)
+                    
+
                     if self.space=='complex':
                         half_size = int(self.dim/2)
                         self.choice_emb = torch.zeros(self.vocab_size, half_size).to(self.device)
@@ -557,9 +565,9 @@ class Multi_LookupEmbedder(KgeEmbedder):
         """
         align with gumbal softmax / only for continuous input embeddings size
         """
-        Tau=max(0.5,1*np.exp(-0.00003*step))
+        Tau=max(0.5,1*np.exp(-0.0003*step))
         if if_training:
-            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
+            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=False)
             # Gpro = torch.softmax(probability, dim = -1)
         else:
             Gpro =  torch.zeros(probability.shape,device=self.device)
@@ -661,12 +669,12 @@ class Multi_LookupEmbedder(KgeEmbedder):
 
         if frequency <= turning_point :
             # 低频部分，可以根据需要自定义低频部分的概率分布
-            # probability = frequency / (2 * turning_point)
-            probability = 0
+            probability = frequency / (2 * turning_point)
+            # probability = 0
         else:
             # 高频部分，可以根据需要自定义高频部分的概率分布
-            # probability = min(1, (frequency - turning_point) / (turning_point * 2))
-            probability= 1
+            probability = min(1, (frequency - turning_point) / (turning_point * 2))
+            # probability= 1
         # 高、低
         return [1-probability,probability]
         # return [0,1]
@@ -701,7 +709,8 @@ class Picker(nn.Module):
             else:
                 h=self.dim
             self.FC2 = nn.Linear(self.dim_bucket,h).to(self.device)
-
+            self.FC1_1 = nn.Linear(self.dim_bucket+self.dim,self.dim_bucket).to(self.device)
+            self.FC2_1 = nn.Linear(self.dim_bucket,h).to(self.device)
         else:  
             self.FC1 = nn.Linear(self.dim_bucket+self.dim,20).to(self.device)
             self.FC2 = nn.Linear(20,self.dim_list_size).to(self.device)
@@ -735,7 +744,7 @@ class Picker(nn.Module):
         # bucket emb
         self.k = bucket_size
         self.bucket = nn.Embedding(self.k, self.dim_bucket).to(self.device)
-        # self.bucket.weight.requires_grad = False
+        self.bucket.weight.requires_grad = False
         if self.adae_config['no_picker']:
             self.bucket.weight.data= torch.zeros(self.k,self.dim_bucket,device=self.device)
             self.bucket.weight.data[:,-1]=1

@@ -141,19 +141,42 @@ def create_parser(config, additional_args=[]):
 def main():
     # default config
     config = Config() 
-    
+    #
     args1 = sys.argv[1:]
-   
-    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_rank.yaml"
-    s_u = args1[1] if len(args1)>1 else "2"
-    device = args1[2] if len(args1)>2 else "cuda:0"
- 
-    
-    
+    yaml_name = args1[0] if len(args1)>0 else "models/WNRR18/AdaE_auto.yaml"
+    device = args1[1] if len(args1)>1 else "cuda:6"
+    # other hyperparameters
+    # rank
+    debug = True
+    if debug:
+        rank = True
+        if rank:
+            dim_list = eval(str(args1[2])) if len(args1)>2 else [2,4,16,64,96,128,192,198,224,256]
+            # dim = dim_list[-1]
+        # fix
+        else:
+            dim = args1[2] if len(args1)>2 else 128
+        lr = args1[3] if len(args1)>3 else "0.53" 
+        dropout = args1[4] if len(args1)>4 else "0.36"
+
+        choice_list = eval(str(args1[5])) if len(args1)>5 else [-1]
+        t_s = args1[6] if len(args1)>6 else 256
+        # auto
+        s_u =  args1[7] if len(args1)>7 else 2
+        lr_p = args1[8] if len(args1)>8 else 0.01
+
+
     # now parse the arguments
     parser = create_parser(config)
-    args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
     
+    # test = True
+    test = False
+    if test:
+        args, unknown_args = parser.parse_known_args(("test?local/wnrr/experiments/20231109-054730-transe-512-0.2532720169185861-negative_sampling-reciprocal_relations_model").split("?"))
+    else:
+        args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
+    # args, unknown_args = parser.parse_known_args(("test?local/experiments/fb15k-237/20231012-055709-AdaE_rank-rank-noshare-[0.999]-[64, 256]-ts-nots256--256-0.5-0.5").split("?"))
+   
     
     # If there where unknown args, add them to the parser and reparse. The correctness
     # of these arguments will be checked later.
@@ -234,33 +257,62 @@ def main():
             if key == "model":
                 config._import(value)
 
-    # initialize output folder
-    
-    
+    if test:
+        config.set('entity_ranking.class_name','EntityRankingJob_freq')
+
     if args.command == "start":
         # set output folder last str
-        train_mode = config.get("AdaE_config.train_mode")
-        last_str = train_mode
-        # set lr_trans key in config
-        config.set('AdaE_config.s_u', int(s_u))
-        config.set('job.device', device)
-        # print(lr_trans)
-        # import time
-        # time.sleep(10)
-        if train_mode not in  ["original", "fix"]:
-            last_str+="-"+ str(config.get("AdaE_config.dim_list"))
-        if train_mode  in  ["fix"]:
-            last_str+="-"+ str(config.get("AdaE_config.lr_trans"))
-        if train_mode in ["auto"]:
-            last_str+="-"+ str(config.get("AdaE_config.s_u"))
+        last_str="-"
+        if debug:
+            train_mode = config.get("AdaE_config.train_mode")
+            last_str = train_mode
+            config.set('job.device', device)
+            # config.set('AdaE_config.lr_trans', lr_trans)
+            config.set('train.optimizer.default.args.lr',lr)
+            config.set("complex"+'.entity_embedder.dropout', dropout)
+            # rank
+            if rank:
+                config.set('AdaE_config.dim_list', dim_list)
+                config.set("multi_lookup_embedder.dim",t_s)
+                config.set('AdaE_config.choice_list', choice_list)
+                config.set('AdaE_config.s_u', s_u)
+                config.set('AdaE_config.lr_p', lr_p)
+                
+
+            else:
+                config.set("multi_lookup_embedder.dim",dim)
+            # print(lr_trans)
+            # import time
+            # time.sleep(10)
+
+            if train_mode  in  ["auto"]:
+                last_str +="-"+ ('cie' if config.get("AdaE_config.cie") else 'nocie' )
+                last_str += '-' +str(config.get("AdaE_config.padding"))+ '-'
+           
+            if train_mode not in  ["original", "fix"]:
+                # last_str+="-share" if config.get("AdaE_config.share") == True else "-noshare"
+                last_str+="-"+ str(config.get("AdaE_config.choice_list"))+"-"+str(config.get('AdaE_config.dim_list'))
+                # last_str +="-"+str(config.get("AdaE_config.ali_way"))+"-(a)-"
+                last_str +="-"+str(config.get("multi_lookup_embedder.dim"))
+                # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
+                # last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))+"-"+str(config.get("complex"+'.entity_embedder.dropout'))
+                
+            if train_mode  in  ["fix"]:
+                last_str+="-"+ str(config.get("multi_lookup_embedder.dim"))+"-multilayer-1vsall-"
+                last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))
+                pass
+            if train_mode  in  ["auto"]:
+                last_str+="-"+ str(config.get("AdaE_config.lr_p"))
+                last_str+="-"+ str(config.get("AdaE_config.s_u"))+"-2"
+            
         if args.folder is None:  # means: set default
             config_name = os.path.splitext(os.path.basename(args.config))[0]
             config.folder = os.path.join(
                 kge_base_dir(),
                 "local",
-                "experiments",
                 config.get("dataset.name"),
-                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + "-"+ last_str
+                config.get("AdaE_config.train_mode"),
+                datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + config_name + "-nots"+ last_str
             )
             
         else:
@@ -279,7 +331,7 @@ def main():
         # disable processing of outdated cached dataset files globally
         Dataset._abort_when_cache_outdated = args.abort_when_cache_outdated
 
-        # set random seeds
+        # set ra
         seed_from_config(config)
 
         # let's go

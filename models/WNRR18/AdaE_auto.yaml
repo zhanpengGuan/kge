@@ -55,7 +55,7 @@ train:
     mode: max
     patience: 5
     threshold: 0.0001
-  max_epochs: 10
+  max_epochs: 400
   optimizer_args:
     lr: 0.523
   type: darts
@@ -77,7 +77,7 @@ AdaE_config:
   ali_way: 'zp'
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'auto'
-  cie: False
+  cie: True
   padding: -0.28
   dim_list: [20,40,80,160]
   choice_list: [0.2]
