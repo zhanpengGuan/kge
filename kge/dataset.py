@@ -82,7 +82,7 @@ class Dataset(Configurable):
         '''
         
 
-        if  os.path.isfile(data_path+'/'+str(choice_list)+'rank_e.pt'):
+        if   os.path.isfile(data_path+'/'+str(choice_list)+'rank_e.pt'):
             rank_e = torch.load(data_path+'/'+str(choice_list)+'rank_e.pt')
             rank_r = torch.load(data_path+'/'+str(choice_list)+'rank_r.pt')
             count_e = torch.load(data_path+'/'+str(choice_list)+'counte.pt')

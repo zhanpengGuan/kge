@@ -3,7 +3,7 @@ complex:
     dropout: 0.5
     regularize_weight: 1.3408200403806817e-08
   relation_embedder:
-    dropout: 0.22684140529516872
+    dropout: 0.4
     regularize_weight: 8.266519211068944e-14
 dataset:
   name: fb15k-237
@@ -53,7 +53,7 @@ train:
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.18255429345236635
+    lr: 0.5
   type: 1vsAll
 valid:
   early_stopping:

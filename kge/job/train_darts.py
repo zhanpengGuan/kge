@@ -413,6 +413,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
             # self.optimizer.step()
             # self.optimizer.zero_grad()
             # determine penalty terms (forward pass)
+            
             batch_forward_time = batch_result.forward_time - time.time()
             penalties_torch = self.model.penalty(
                 epoch=self.epoch,
@@ -434,7 +435,8 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
             batch_backward_time += time.time()
             
             # memory loss
-           
+            # penalty_m = self.model._entity_embedder.penalty_m()
+            # penalty_m.backward()
             # print(p_t1-p_t)
             # determine full cost
             cost_value = batch_result.avg_loss + penalty 
@@ -517,9 +519,10 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
             self.current_trace["batch"] = None
 
             # print console feedback
+            
             self.config.print(
                 (
-                    "\r"  # go back
+                    "\r\033[2K"  # go back
                     + "{}  batch{: "
                     + str(1 + int(math.ceil(math.log10(len(self.loader)))))
                     + "d}/{}"
@@ -541,6 +544,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                 end="",
                 flush=True,
             )
+            
 
             # update epoch times
             prepare_time += batch_result.prepare_time

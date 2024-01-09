@@ -92,21 +92,49 @@
 # kge start models/WNRR18/complex.yaml --job.device cuda:5 --lookup_embedder.dim 128  --train.loss   se &
 
 ## yago-3
-# kge start models/YAGO/complex.yaml --job.device cuda:4 --lookup_embedder.dim 256 &
-# kge start models/YAGO/complex.yaml --job.device cuda:3 --lookup_embedder.dim 192 &
+# kge start models/YAGO/complex.yaml --job.device cuda:2 --complex.relation_embedder.dropout 0.1  --complex.entity_embedder.dropout 0.1 &
+# kge start models/YAGO/complex.yaml --job.device cuda:3 --complex.relation_embedder.dropout 0.15 --complex.entity_embedder.dropout 0.1 &
+# kge start models/YAGO/complex.yaml --job.device cuda:7 --complex.relation_embedder.dropout 0.25 --complex.entity_embedder.dropout 0.1 &
+# kge start models/YAGO/complex.yaml --job.device cuda:2 --complex.relation_embedder.dropout 0.1  --complex.entity_embedder.dropout 0.15 &
+# wait
+# kge start models/YAGO/complex.yaml --job.device cuda:2 --complex.relation_embedder.dropout 0.15  --complex.entity_embedder.dropout 0.15 &
+# kge start models/YAGO/complex.yaml --job.device cuda:3 --complex.relation_embedder.dropout 0.2  --complex.entity_embedder.dropout 0.15 &
+# kge start models/YAGO/complex.yaml --job.device cuda:7 --complex.relation_embedder.dropout 0.25  --complex.entity_embedder.dropout 0.15 &
+# #wait
+# kge start models/YAGO/complex.yaml --job.device cuda:5 --complex.relation_embedder.dropout 0.3  --complex.entity_embedder.dropout 0.1 &
+# kge start models/YAGO/complex.yaml --job.device cuda:6 --complex.relation_embedder.dropout 0.3 --complex.entity_embedder.dropout 0.2 &
+# kge start models/YAGO/complex.yaml --job.device cuda:7 --complex.relation_embedder.dropout 0.3  --complex.entity_embedder.dropout 0.3 &
+# kge start models/YAGO/complex.yaml --job.device cuda:5 --complex.relation_embedder.dropout 0.3 --complex.entity_embedder.dropout 0.4 &
+# wait
+# kge start models/YAGO/complex.yaml --job.device cuda:5 --complex.relation_embedder.dropout 0.2  --complex.entity_embedder.dropout 0.1 --lookup_embedder.dim 512 &
+# kge start models/YAGO/complex.yaml --job.device cuda:6 --complex.relation_embedder.dropout 0.2 --complex.entity_embedder.dropout 0.2 --lookup_embedder.dim 512 &
+# kge start models/YAGO/complex.yaml --job.device cuda:7 --complex.relation_embedder.dropout 0.2  --complex.entity_embedder.dropout 0.3 --lookup_embedder.dim 512 &
+# kge start models/YAGO/complex.yaml --job.device cuda:5 --complex.relation_embedder.dropout 0.2 --complex.entity_embedder.dropout 0.4 --lookup_embedder.dim 512 &
 # kge start models/YAGO/complex.yaml --job.device cuda:2 --lookup_embedder.dim 512 &
 
 # kge start models/YAGO/complex.yaml --job.device cuda:5 &
 # kge start models/YAGO/complex.yaml -- job.device cuda:7 &
 # wait 
-# kge start models/YAGO/complex.yaml -- job.device cuda:4 &
-# kge start models/YAGO/complex.yaml -- job.device cuda:5 &
-# kge start models/YAGO/complex.yaml -- job.device cuda:6 &
-# kge start models/YAGO/complex.yaml -- job.device cuda:7 &
+# kge start models/YAGO/complex.yaml --job.device cuda:0  --complex.entity_embedder.dropout 0.1 &
+# kge start models/YAGO/complex.yaml --job.device cuda:5  --complex.entity_embedder.dropout 0.1 &
+# kge start models/YAGO/complex.yaml --job.device cuda:7  --train.batch_size 2048  &
+# kge start models/YAGO/complex.yaml --job.device cuda:6  --train.optimizer.default.args.lr 0.7 &
+# wait
+# kge start models/YAGO/complex.yaml --job.device cuda:5  --train.batch_size 256  &
+# kge start models/YAGO/complex.yaml --job.device cuda:0    &
+# kge start models/YAGO/complex.yaml --job.device cuda:6  --train.batch_size 2048 &
+# kge start models/YAGO/complex.yaml --job.device cuda:7  --train.optimizer.default.args.lr 0.5 &
 
+# wait
+# kge start models/YAGO/complex.yaml --job.device cuda:5  &
+# kge start models/YAGO/complex.yaml --job.device cuda:7 --train.batch_size 256  &
+# kge start models/YAGO/complex.yaml --job.device cuda:6  &
+# kge start models/YAGO/complex.yaml --job.device cuda:0  --train.optimizer.default.args.lr 0.1 &
 
 ## fb15k-237,complex
-# kge start models/fb15k-237/complex.yaml --job.device cuda:5 --train.optimizer.default.args.lr 0.18255  &
+# kge start models/fb15k-237/complex.yaml --job.device cuda:5 --train.optimizer.default.args.lr 0.5  --lookup_embedder.dim 512 &
+# kge start models/fb15k-237/complex.yaml --job.device cuda:6 --train.optimizer.default.args.lr 0.5  --lookup_embedder.dim 1024 &
+
 # kge start models/fb15k-237/complex.yaml --job.device cuda:6 --train.optimizer.default.args.lr 0.5  &
 # kge start models/fb15k-237/complex.yaml --job.device cuda:7 --train.optimizer.default.args.lr 0.65  &
 
@@ -129,21 +157,30 @@
 # kge start models/fb15k-237/distmult.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type 'KvsAll'  --model 'distmult' &
 # distmult，yago3-10
 
-# transe
-kge start models/fb15k-237/transe.yaml --job.device cuda:1 --lookup_embedder.dim 128 --train.type '1vsAll' &
-kge start models/fb15k-237/transe.yaml --job.device cuda:2 --lookup_embedder.dim 128 --train.type 'KvsAll' &
-kge start models/fb15k-237/transe.yaml --job.device cuda:3 --lookup_embedder.dim 128 &
-wait
-kge start models/WNRR18/transe.yaml --job.device cuda:1 --lookup_embedder.dim 512  &
+# # transe
+# kge start models/fb15k-237/transe.yaml --job.device cuda:1 --lookup_embedder.dim 128 --train.type '1vsAll' &
+# kge start models/fb15k-237/transe.yaml --job.device cuda:2 --lookup_embedder.dim 128 --train.type 'KvsAll' &
+# kge start models/fb15k-237/transe.yaml --job.device cuda:3 --lookup_embedder.dim 128 &
+# wait
+# kge start models/WNRR18/transe.yaml --job.device cuda:1 --lookup_embedder.dim 512  &
 
 
-# rotate
-kge start models/fb15k-237/rotate.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type '1vsAll' &
-wait
-kge start models/fb15k-237/rotate.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type 'KvsAll' &
-kge start models/WNRR18/rotate.yaml --job.device cuda:2 --lookup_embedder.dim 256 --train.type '1vsAll' &
-kge start models/WNRR18/rotate.yaml --job.device cuda:1 --lookup_embedder.dim 256  &
-# conve
-wait
-kge start models/YAGO/transe.yaml --job.device cuda:2 --lookup_embedder.dim 128  &
-kge start models/YAGO/conve.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type '1vsAll' &
+# # rotate
+# kge start models/fb15k-237/rotate.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type '1vsAll' &
+# wait
+# kge start models/fb15k-237/rotate.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type 'KvsAll' &
+# kge start models/WNRR18/rotate.yaml --job.device cuda:2 --lookup_embedder.dim 256 --train.type '1vsAll' &
+# kge start models/WNRR18/rotate.yaml --job.device cuda:1 --lookup_embedder.dim 256  &
+# # conve
+# wait
+# kge start models/YAGO/transe.yaml --job.device cuda:2 --lookup_embedder.dim 128  &
+# kge start models/YAGO/conve.yaml --job.device cuda:3 --lookup_embedder.dim 256 --train.type '1vsAll' &
+
+## complex,fb15k-237
+# kge start models/fb15k-237/complex.yaml --job.device cuda:6 --lookup_embedder.dim 512 --complex.relation_embedder.dropout 0.6 &
+# kge start models/fb15k-237/complex.yaml --job.device cuda:7 --lookup_embedder.dim 512 --complex.relation_embedder.dropout 0.7 &
+
+kge start models/fb15k-237/complex.yaml --job.device cuda:1 --lookup_embedder.dim 512 --complex.entity_embedder.regularize_weight 1e-8 --complex.relation_embedder.regularize_weight 1e-11 &
+kge start models/fb15k-237/complex.yaml --job.device cuda:2 --lookup_embedder.dim 512 --complex.entity_embedder.regularize_weight 1e-8 --complex.relation_embedder.regularize_weight 1e-10 &
+kge start models/fb15k-237/complex.yaml --job.device cuda:1 --lookup_embedder.dim 512 --complex.entity_embedder.regularize_weight 1e-8 --complex.relation_embedder.regularize_weight 1e-9 &
+kge start models/fb15k-237/complex.yaml --job.device cuda:2 --lookup_embedder.dim 512 --complex.entity_embedder.regularize_weight 1e-8 --complex.relation_embedder.regularize_weight 1e-8 &

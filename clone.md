@@ -253,7 +253,7 @@
   删掉optimizer_p那一块
   # 停止命令
   pkill -u  guanzp python
-  pkill  -u guanzp -f "python kge/cli_debug.py models/fb15k-237/AdaE_rank.yaml cuda:4"
+  pkill  -u guanzp -f "debugpy"
   
 # 随机选择
 ## trick
@@ -406,3 +406,6 @@ MLP会降低效果/完全不行
    diversity loss
 
 
+# 热启动
+# 两个的结果和一个的结果
+# bucket数量太少

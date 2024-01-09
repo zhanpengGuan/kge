@@ -142,7 +142,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         Gpro = self.ste(pro, tau=Tau, hard=False)
         
         if self.adae_config['cie']:
-            result = 1*((2*(self.dim_l*Gpro).sum()/(Gpro.shape[0]*max(self.dim_list))))
+            result = 0.3*(((self.dim_l*Gpro).sum()/(Gpro.shape[0]*max(self.dim_list))))**2
         else:
             result = 1*(((self.dim_l*Gpro).sum()/(Gpro.shape[0]*max(self.dim_list)))) 
         return result
@@ -248,6 +248,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
 
         if self.configuration_key.split('.')[-1]=="entity_embedder":
             self.rank = self.rank_e
+            # self.rank = torch.tensor([i for i  in range(dataset._num_entities)],device = self.device)
         else:
             self.rank = self.rank_r
         self.dim_list = self.config.options['AdaE_config']['dim_list']
@@ -567,34 +568,13 @@ class Multi_LookupEmbedder(KgeEmbedder):
         """
         Tau=max(0.5,1*np.exp(-0.0003*step))
         if if_training:
-            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=False)
-            # Gpro = torch.softmax(probability, dim = -1)
+            Gpro = F.gumbel_softmax(probability, tau=Tau, hard=True)
+            # Gpro = self.topk(probability, tau=Tau, k=1)
         else:
             Gpro =  torch.zeros(probability.shape,device=self.device)
             Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
             Gpro = Gpro.scatter_(1, Gpro_index, 1) 
         mask = torch.matmul(Gpro,self.mask)
-        # tmp = torch.argmax(self.choice_emb, dim =-1)
-        # d  = {}
-        # statics the unique value and its nums in tmp
-        # for i in range(len(tmp)):
-        #     if tmp[i].item() in d:
-        #         d[tmp[i].item()] += 1
-        #     else:
-        #         d[tmp[i].item()] = 1
-        # print(tmp[:10])
-        # self.config.log("choice:{}".format(tmp))
-        # sleep(1000)
-        # mask = torch.zeros((Gpro.shape[0],Gpro.shape[1]),device=self.device)
-        # mask[:,127]=1
-        # mask = torch.matmul(mask,self.mask)
-        # if probability.shape[0]==512:
-        #     ans = 0
-        #     for num in range(probability.shape[0]):
-        #         if torch.argmax(Gpro[num])==torch.argmax(probability[num]):
-        #             ans+=1
-        #     print(ans)
-      
         a = self.adae_config['padding']
         paddings = (torch.ones(mask.shape[0],mask.shape[1],device=self.device)-mask)*a
         emb = self._embeddings(indexes)
@@ -604,7 +584,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         with torch.no_grad():
             # save fianl emb
             if not self.is_bilevel:
-                # self._embeddings.weight.data[indexes] = emb_final
+                self._embeddings_clone.weight.data[indexes] = emb_final
                 self.choice_emb[indexes] = probability
 
         return emb_final
@@ -678,7 +658,25 @@ class Multi_LookupEmbedder(KgeEmbedder):
         # 高、低
         return [1-probability,probability]
         # return [0,1]
+    def topk(self, logits: Tensor, tau: float = 1, hard: bool = True, eps: float = 1e-10, dim: int = -1, k = 1) -> Tensor:
 
+        gumbels = (
+            -torch.empty_like(logits, memory_format=torch.legacy_contiguous_format).exponential_().log()
+        )  # ~Gumbel(0,1)
+        gumbels = (logits ) / tau  # ~Gumbel(logits,tau)
+        y_soft = gumbels.softmax(dim)
+
+        if hard:
+            # Straight through.
+            topk_values, topk_indices = torch.topk(y_soft, k, dim=dim)
+            selected_index = torch.randint(k, (topk_indices.shape[0],))
+            index = topk_indices[:, selected_index]
+            y_hard = torch.zeros_like(logits, memory_format=torch.legacy_contiguous_format).scatter_(dim, index, 1.0)
+            ret = (y_hard - y_soft).detach() + y_soft
+        else:
+            # Reparametrization trick.
+            ret = y_soft
+        return ret
 
 
 
@@ -701,20 +699,20 @@ class Picker(nn.Module):
         else:
             self.dim_bucket = int(128)
         if self.adae_config['cie']:
-            self.dim_bucket = 128
+            self.dim_bucket = 2
             #目前的输入之后fre
-            self.FC1 = nn.Linear(self.dim_bucket+self.dim,self.dim_bucket).to(self.device)
+            self.FC1 = nn.Linear(self.dim_bucket+self.dim,128).to(self.device)
             if self.space=='complex':
                 h=int(self.dim/2)
             else:
                 h=self.dim
-            self.FC2 = nn.Linear(self.dim_bucket,h).to(self.device)
-            self.FC1_1 = nn.Linear(self.dim_bucket+self.dim,self.dim_bucket).to(self.device)
-            self.FC2_1 = nn.Linear(self.dim_bucket,h).to(self.device)
+            self.FC2 = nn.Linear(128,h).to(self.device)
+            self.FC1_1 = nn.Linear(self.dim_bucket+self.dim,128).to(self.device)
+            self.FC2_1 = nn.Linear(128,h).to(self.device)
         else:  
-            self.FC1 = nn.Linear(self.dim_bucket+self.dim,20).to(self.device)
+            self.FC1 = nn.Linear(self.dim_bucket,20).to(self.device)
             self.FC2 = nn.Linear(20,self.dim_list_size).to(self.device)
-            self.FC1_1 = nn.Linear(self.dim_bucket+self.dim,20).to(self.device)
+            self.FC1_1 = nn.Linear(self.dim_bucket,20).to(self.device)
             self.FC2_1 = nn.Linear(20,self.dim_list_size).to(self.device)
             # self.FC3 = nn.Linear(64,self.dim_list_size).to(self.device)
         nn.init.xavier_uniform_(self.FC1.weight.data)
@@ -727,7 +725,7 @@ class Picker(nn.Module):
             nn.Dropout(0.2),
             nn.ReLU(),
             self.FC2,
-            # nn.Dropout(0.5),
+            # nn.Dropout(0.2),
             # nn.ReLU(),
             # self.FC3
         ) 
@@ -735,16 +733,16 @@ class Picker(nn.Module):
             self.FC1_1,
             nn.Dropout(0.2),
             nn.ReLU(),
-            self.FC2_1,
-            # nn.Dropout(0.5),
+            self.FC2,
+            # nn.Dropout(0.2),
             # nn.ReLU(),
             # self.FC3
         ) 
         
         # bucket emb
         self.k = bucket_size
-        self.bucket = nn.Embedding(self.k, self.dim_bucket).to(self.device)
-        self.bucket.weight.requires_grad = False
+        self.bucket = nn.Embedding(int(self.k), self.dim_bucket).to(self.device)
+        # self.bucket.weight.requires_grad = False
         if self.adae_config['no_picker']:
             self.bucket.weight.data= torch.zeros(self.k,self.dim_bucket,device=self.device)
             self.bucket.weight.data[:,-1]=1
@@ -757,3 +755,5 @@ class Picker(nn.Module):
         pro = self.Picker(input)*weight[:,1].unsqueeze(1)
         pro_1 = self.Picker_1(input)*weight[:,0].unsqueeze(1)
         return pro+pro_1
+    
+    

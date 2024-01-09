@@ -143,8 +143,8 @@ def main():
     config = Config() 
     #
     args1 = sys.argv[1:]
-    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_auto.yaml"
-    device = args1[1] if len(args1)>1 else "cuda:5"
+    yaml_name = args1[0] if len(args1)>0 else "models/WNRR18/AdaE_auto.yaml"
+    device = args1[1] if len(args1)>1 else "cuda:1"
     # other hyperparameters
     # rank
     debug = True
@@ -157,9 +157,9 @@ def main():
         else:
             dim = args1[2] if len(args1)>2 else 128
         lr = args1[3] if len(args1)>3 else "0.5" 
-        dropout = args1[4] if len(args1)>4 else "0.5"
+        dropout = args1[4] if len(args1)>4 else "0.1"
         choice_list = eval(str(args1[5])) if len(args1)>5 else [-1]
-        t_s = args1[6] if len(args1)>6 else 128
+        t_s = args1[6] if len(args1)>6 else 256
         # auto
         s_u =  args1[7] if len(args1)>7 else 2
         lr_p = args1[8] if len(args1)>8 else 0.01
@@ -171,7 +171,7 @@ def main():
     # test = True
     test = False
     if test:
-        args, unknown_args = parser.parse_known_args(("test?/home/guanzp/code/AdaE/kge/local/wnrr/auto/20231223-061106-AdaE_autoauto-cie--0.28--[-1]-[64, 128]-256-0.01-2-2").split("?"))
+        args, unknown_args = parser.parse_known_args(("test?/home/guanzp/code/AdaE/kge/local/fb15k-237/auto/20240107-030555AdaE_auto-auto-cie--0.28--0.1-soft-512-drop-0.5no-gumbel").split("?"))
     else:
         args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
     # args, unknown_args = parser.parse_known_args(("test?local/experiments/fb15k-237/20231012-055709-AdaE_rank-rank-noshare-[0.999]-[64, 256]-ts-nots256--256-0.5-0.5").split("?"))
@@ -295,7 +295,7 @@ def main():
                 last_str+="-"+ str(config.get("train.optimizer.default.args.lr"))
                 last_str +="-soft-"+str(config.get("multi_lookup_embedder.dim"))
                 # last_str +="-"+str(config.get("multi_lookup_embedder.dim"))+"-noBN"
-                last_str+="-drop-"+str(config.get("complex"+'.entity_embedder.dropout'))
+                last_str+="-drop-"+str(config.get("complex"+'.entity_embedder.dropout'))+"small-gumbel"
                 
             if train_mode  in  ["fix"]:
                 last_str+="-"+ str(config.get("multi_lookup_embedder.dim"))+"-multilayer-1vsall-"
@@ -313,7 +313,7 @@ def main():
                 "local",
                 config.get("dataset.name"),
                 config.get("AdaE_config.train_mode"),
-                config_name + last_str
+                datetime.datetime.now().strftime("%Y%m%d-%H%M%S")+config_name + last_str
             )
             
         else:
@@ -330,47 +330,4 @@ def main():
             checkpoint_file = get_checkpoint_file(config, args.checkpoint)
 
         # disable processing of outdated cached dataset files globally
-        Dataset._abort_when_cache_outdated = args.abort_when_cache_outdated
-
-        # set ra
-        seed_from_config(config)
-
-        # let's go
-        if args.command == "start" and not args.run:
-            config.log("Job created successfully.")
-        else:
-            # load data
-            dataset = Dataset.create(config)
-               # AdaE
-        # self.rank_e, self.rank_r = self.count_entity_frequency(dataset._triples, dataset._num_entities, dataset._num_relations, adae_config['choice_list'] )
-            # let's go
-            if args.command == "resume":
-                if checkpoint_file is not None:
-                    checkpoint = load_checkpoint(
-                        checkpoint_file, config.get("job.device")
-                    )
-                    job = Job.create_from(
-                        checkpoint, new_config=config, dataset=dataset
-                    )
-                else:
-                    job = Job.create(config, dataset)
-                    job.config.log(
-                        "No checkpoint found or specified, starting from scratch..."
-                    )
-            else:
-                job = Job.create(config, dataset)
-
-            # log configuration
-            config.log("Configuration:")
-            config.log(yaml.dump(config.options), prefix="  ")
-            config.log("git commit: {}".format(get_git_revision_short_hash()),
-                       prefix="  ")
-            job.run()
-    except BaseException:
-        tb = traceback.format_exc()
-        config.log(tb, echo=False)
-        raise
-
-
-if __name__ == "__main__":
-    main()
+        
