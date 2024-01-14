@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2024-01-14T16:42:20.868Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0" etag="TMMqi32x8AjwpbHKwJDj" version="22.1.18" type="github">
+<mxfile host="app.diagrams.net" modified="2024-01-14T16:42:42.663Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0" etag="mIrRUSwUk31SWMbS9Vru" version="22.1.18" type="github">
   <diagram name="第 1 页" id="-RjDDm0cu4hkCTvjiUrG">
     <mxGraphModel dx="528" dy="334" grid="1" gridSize="1" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -65,7 +65,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="ZKwVpPPEvr6WydnbmwrV-17" value="KGE loss" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.terminator;whiteSpace=wrap;fillColor=#ABABAB;rotation=0;" vertex="1" parent="1">
-          <mxGeometry x="301" y="80" width="69" height="27" as="geometry" />
+          <mxGeometry x="299.5" y="64" width="69" height="27" as="geometry" />
         </mxCell>
         <mxCell id="ZKwVpPPEvr6WydnbmwrV-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="ZKwVpPPEvr6WydnbmwrV-19" target="ZKwVpPPEvr6WydnbmwrV-3">
           <mxGeometry relative="1" as="geometry" />
@@ -78,6 +78,9 @@
         </mxCell>
         <mxCell id="ZKwVpPPEvr6WydnbmwrV-20" value="&lt;font face=&quot;Times New Roman&quot;&gt;Picker module&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaccb4;" vertex="1" parent="1">
           <mxGeometry x="331" y="274" width="137" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="ZKwVpPPEvr6WydnbmwrV-25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="ZKwVpPPEvr6WydnbmwrV-1" target="ZKwVpPPEvr6WydnbmwrV-17">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
