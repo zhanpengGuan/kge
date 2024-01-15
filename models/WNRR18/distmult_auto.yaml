@@ -1,42 +1,41 @@
-import:
-- complex
-- multi_lookup_embedder
-- AdaE
-complex:
-  entity_embedder:
-    type: multi_lookup_embedder
-    dropout: 0.3592749142853321
-    regularize_weight: 4.5230047706178325e-06
-    # pretrain:
-    #   model_filename: '/home/guanzp/code/AdaE/kge/local/wnrr/rank/20240111-132431AdaE_rank/checkpoint_best.pt'
-  relation_embedder:
-    type: multi_lookup_embedder
-    dropout: 0.3112283826796357
-    regularize_weight: 4.192985917075565e-10
-    # pretrain:
-    #   model_filename: '/home/guanzp/code/AdaE/kge/local/wnrr/rank/20240111-132431AdaE_rank/checkpoint_best.pt'
+KvsAll:
+  label_smoothing: 0.07398311105554728
 dataset:
   name: wnrr
+distmult:
+  entity_embedder:
+    type: multi_lookup_embedder 
+    dropout: 0.3667933782666931
+    regularize_weight: 2.504743872791287e-12
+  relation_embedder:
+    type: multi_lookup_embedder
+    dropout: 0.5
+    regularize_weight: 3.0597172820406116e-14
 eval:
   batch_size: 256
   metrics_per:
     relation_type: true
   trace_level: example
-
-
+import:
+- distmult
+- multi_lookup_embedder
+- AdaE
 multi_lookup_embedder:
-  dim: 80
+  dim: 512
   initialize: uniform_
   initialize_args:
     normal_:
       mean: 0.0
-      std: 0.0005472140383629246
+      std: 1.0
     uniform_:
-      a: -0.28148249060722197
+      a: -0.7226369686094678
     xavier_normal_:
       gain: 1.0
     xavier_uniform_:
       gain: 1.0
+  regularize_args:
+    p: 3
+    weighted: true
 model: AdaE
 negative_sampling:
   implementation: batch
@@ -44,20 +43,20 @@ negative_sampling:
     p: -1
 AdaE:
   base_model:
-    type: complex
+    type: distmult
 train:
   auto_correct: true
-  batch_size: 512
+  batch_size: 1024
   loss_arg: 1.0
   lr_scheduler: ReduceLROnPlateau
   lr_scheduler_args:
     factor: 0.95
     mode: max
-    patience: 5
+    patience: 7
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.523
+    lr: 0.3312683797847912
   type: darts
 valid:
   early_stopping:
@@ -65,27 +64,21 @@ valid:
       epochs: 50
       metric_value: 0.05
     patience: 10
-  every: 5
-
-
 
 AdaE_config:
   adae: True
   bi-level: False
   share: True
-  type: '1vsall'
+  type: 'kvsall'
   ali_way: 'zp'
+  cie: True
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'auto'
-  cie: True
-  padding: -0.28
-  dim_list: [20,40,80,160]
-  choice_list: [0.2]
-  s_u: 3
+  dim_list: [1,128]
+  choice_list: [-1]
+  s_u: 2
   ratio: 0.8
   urolled: False
   t_s: 128
-  lr_p: 0.001
+  lr_p: 0.1825
   device: 'cuda:0'
-  no_picker: False
-  #目前device没用

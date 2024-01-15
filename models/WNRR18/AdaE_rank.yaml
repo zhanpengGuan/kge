@@ -27,7 +27,7 @@ multi_lookup_embedder:
       mean: 0.0
       std: 0.0005472140383629246
     uniform_:
-      a: -0.28148249060722197
+      a: -0.28
     xavier_normal_:
       gain: 1.0
     xavier_uniform_:
@@ -52,7 +52,7 @@ train:
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.5255808623927111
+    lr: 0.53
   type: 1vsAll
 valid:
   early_stopping:

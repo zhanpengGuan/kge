@@ -488,7 +488,7 @@ class Multi_LookupEmbedder(KgeEmbedder):
         with torch.no_grad():
             # save fianl emb
             if not self.is_bilevel:
-                self._embeddings.weight.data[indexes] = emb_final
+                # self._embeddings.weight.data[indexes] = emb_final
                 self.choice_emb[indexes] = probability
 
         return emb_final
@@ -699,7 +699,7 @@ class Picker(nn.Module):
         else:
             self.dim_bucket = int(128)
         if self.adae_config['cie']:
-            self.dim_bucket = 2
+            self.dim_bucket = 32
             #目前的输入之后fre
             self.FC1 = nn.Linear(self.dim_bucket+self.dim,128).to(self.device)
             if self.space=='complex':

@@ -56,7 +56,14 @@ class AdaE(KgeModel):
         self._base_model = base_model
         # TODO change entity_embedder assignment to sub and obj embedders when support
         # for that is added
+        if False:
+            checkpoint = torch.load('/home/guanzp/code/AdaE/kge/local/wnrr/rank/20240111-132431AdaE_rank/checkpoint_best.pt')
+            ent = checkpoint['model'][0]['_base_model._entity_embedder._embeddings.weight']
+            rel = checkpoint['model'][0]['_base_model._relation_embedder._embeddings.weight']
+            self._base_model.get_s_embedder()._embeddings.weight = nn.Parameter(ent, requires_grad=True)
+            self._base_model.get_p_embedder()._embeddings.weight = nn.Parameter(rel, requires_grad=True)
         self._entity_embedder = self._base_model.get_s_embedder()
+        
         self._relation_embedder = self._base_model.get_p_embedder()
         self.device = self.config.get("job.device")
         self._sampler = KgeSampler.create(config, "negative_sampling", dataset)

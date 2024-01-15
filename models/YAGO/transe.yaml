@@ -1,10 +1,8 @@
 transe:
   entity_embedder:
-    dropout: 0.3
-    regularize_weight: 1.0274165130442088e-15
+    dropout: 0.2
   relation_embedder:
-    dropout: 0.15
-    regularize_weight: 2.934669571854759e-10
+    dropout: 0.1
 dataset:
   files:
     test:
@@ -50,9 +48,7 @@ lookup_embedder:
       gain: 1.0
     xavier_uniform_:
       gain: 1.0
-  regularize_args:
-    p: 3
-    weighted: true
+
   sparse: true
 model: transe
 negative_sampling:
@@ -75,10 +71,10 @@ train:
     mode: max
     patience: 5
     threshold: 0.0001
-  max_epochs: 400
-  optimizer: Adam
+  max_epochs: 200
+  optimizer: Adagrad
   optimizer_args:
-    lr: 0.00030000000000000014
+    lr: 0.3
   type: negative_sampling
 valid:
   early_stopping:

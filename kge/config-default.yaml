@@ -42,11 +42,11 @@ random_seed:
   # their own seed specified. The actual seed used computed from the value given
   # here and the name of the PRNG (e.g., python, torch, ...). If -1, disable
   # default seeding.
-  default: -1
-  python: -1
-  torch: -1
-  numpy: -1
-  numba: -1
+  default: 42
+  python: 42
+  torch: 42
+  numpy: 42
+  numba: 42
 
 
 ## DATASET #####################################################################
@@ -436,7 +436,7 @@ valid:
 
   # Validation is run every this many epochs during training (disable validation
   # with 0).
-  every: 5
+  every: 2
   
   # Whether to always run validation after train.max_epochs are reached. This
   # only becomes relevant when train.max_epochs mod valid.every != 0.

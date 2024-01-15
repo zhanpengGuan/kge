@@ -613,7 +613,7 @@ class KgeModel(KgeBase):
         model.load(checkpoint["model"])
         # for adae
         
-        model._entity_embedder.choice_emb = checkpoint['choice_emb'].to(model.device)
+        # model._entity_embedder.choice_emb = checkpoint['choice_emb'].to(model.device)
         model.eval()
         return model
 

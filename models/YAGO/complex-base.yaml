@@ -1,20 +1,10 @@
-import:
-- complex
-- AdaE
-- multi_lookup_embedder
 complex:
   entity_embedder:
-    type: multi_lookup_embedder
-    dropout: 0.1
-    regularize_weight: 1.0274165130442088e-15
-    pretrain:
-      model_filename: "/home/guanzp/code/AdaE/kge/local/yago3-10/experiments/20240102-223259-complex-512-complex--ed-0.1--rd-0.2-best//checkpoint_best.pt"
+    dropout: 0.5
+    regularize_weight: 1.02e-15
   relation_embedder:
-    type: multi_lookup_embedder
-    dropout: 0.2
-    regularize_weight: 2.934669571854759e-10
-    pretrain:
-      model_filename: "/home/guanzp/code/AdaE/kge/local/yago3-10/experiments/20240102-223259-complex-512-complex--ed-0.1--rd-0.2-best//checkpoint_best.pt"
+    dropout: 0.15
+    regularize_weight: 2.9e-10
 dataset:
   files:
     test:
@@ -44,9 +34,11 @@ eval:
   metrics_per:
     relation_type: true
   trace_level: example
-
-multi_lookup_embedder:
-  dim: 192
+import:
+- reciprocal_relations_model
+- complex
+lookup_embedder:
+  dim: 256
   initialize: uniform_
   initialize_args:
     normal_:
@@ -62,7 +54,7 @@ multi_lookup_embedder:
     p: 3
     weighted: true
   sparse: true
-model: AdaE
+model: complex
 negative_sampling:
   implementation: batch
   num_samples:
@@ -70,7 +62,7 @@ negative_sampling:
     s: 8919
   shared: true
   with_replacement: false
-AdaE:
+reciprocal_relations_model:
   base_model:
     type: complex
 train:
@@ -85,33 +77,11 @@ train:
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.26
-  type: darts
+    lr: 0.22584037828361303
+  type: negative_sampling
 valid:
   early_stopping:
     min_threshold:
       epochs: 10
       metric_value: 0.1
     patience: 10
-
-job:
-  device: cuda:7
-AdaE_config:
-  adae: True
-  bi-level: False
-  share: True
-  type: '1vsall'
-  ali_way: 'zp'
-  cie: True
-  # train_mode: ['rank','auto','fix','original']
-  train_mode: 'auto'
-  dim_list: [128,192]
-  choice_list: [0.5]
-  s_u: 2
-  ratio: 0.8
-  urolled: False
-  t_s: 128
-  lr_p: 0.1825
-  device: 'cuda:3'
-  #目前device没用
-  

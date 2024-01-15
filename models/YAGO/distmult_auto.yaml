@@ -1,20 +1,12 @@
-import:
-- complex
-- AdaE
-- multi_lookup_embedder
-complex:
+distmult:
   entity_embedder:
     type: multi_lookup_embedder
-    dropout: 0.1
+    dropout: 0.3128825817257166
     regularize_weight: 1.0274165130442088e-15
-    pretrain:
-      model_filename: "/home/guanzp/code/AdaE/kge/local/yago3-10/experiments/20240102-223259-complex-512-complex--ed-0.1--rd-0.2-best//checkpoint_best.pt"
   relation_embedder:
     type: multi_lookup_embedder
-    dropout: 0.2
+    dropout: 0.1540917595848441
     regularize_weight: 2.934669571854759e-10
-    pretrain:
-      model_filename: "/home/guanzp/code/AdaE/kge/local/yago3-10/experiments/20240102-223259-complex-512-complex--ed-0.1--rd-0.2-best//checkpoint_best.pt"
 dataset:
   files:
     test:
@@ -44,9 +36,13 @@ eval:
   metrics_per:
     relation_type: true
   trace_level: example
-
+import:
+- reciprocal_relations_model
+- AdaE
+- multi_lookup_embedder
+- distmult
 multi_lookup_embedder:
-  dim: 192
+  dim: 256
   initialize: uniform_
   initialize_args:
     normal_:
@@ -72,7 +68,7 @@ negative_sampling:
   with_replacement: false
 AdaE:
   base_model:
-    type: complex
+    type: distmult
 train:
   auto_correct: true
   batch_size: 1024
@@ -85,7 +81,7 @@ train:
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.26
+    lr: 0.25
   type: darts
 valid:
   early_stopping:
@@ -93,9 +89,6 @@ valid:
       epochs: 10
       metric_value: 0.1
     patience: 10
-
-job:
-  device: cuda:7
 AdaE_config:
   adae: True
   bi-level: False
@@ -106,7 +99,7 @@ AdaE_config:
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'auto'
   dim_list: [128,192]
-  choice_list: [0.5]
+  choice_list: [-1]
   s_u: 2
   ratio: 0.8
   urolled: False
@@ -114,4 +107,3 @@ AdaE_config:
   lr_p: 0.1825
   device: 'cuda:3'
   #目前device没用
-  

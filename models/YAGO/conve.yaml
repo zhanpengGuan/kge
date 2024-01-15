@@ -78,10 +78,10 @@ train:
     mode: max
     patience: 1
     threshold: 0.0001
-  max_epochs: 400
+  max_epochs: 200
   optimizer: Adam
   optimizer_args:
-    lr: 0.0016227612377289686
+    lr: 0.002
 valid:
   early_stopping:
     min_threshold:

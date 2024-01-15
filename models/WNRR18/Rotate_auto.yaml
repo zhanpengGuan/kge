@@ -1,0 +1,89 @@
+import:
+import:
+- rotate
+- multi_lookup_embedder
+- AdaE
+- reciprocal_relations_model
+dataset:
+  name: wnrr
+  num_entities: 40943
+  num_relations: 11
+  test_size: 3134
+  train_size: 86835
+  valid_size: 3034
+
+eval:
+  batch_size: 128
+
+job:
+  device: cuda:6
+lookup_embedder:
+  dim: 200
+  initialize: xavier_normal_
+  initialize_args:
+    normal_:
+      mean: 0.0
+      std: 2.0006032717029774e-05
+    uniform_:
+      a: -0.9279830623610272
+    xavier_normal_:
+      gain: 1.0
+    xavier_uniform_:
+      gain: 1.0
+model: reciprocal_relations_model
+negative_sampling:
+  implementation: triple
+  num_samples:
+    o: 400
+    s: 400
+reciprocal_relations_model:
+  base_model:
+    relation_embedder:
+      dim: 100
+    type: rotate
+rotate:
+  entity_embedder:
+    dropout: 0.3
+    regularize_weight: 1.0054555427885155e-06
+  l_norm: 2.0
+  relation_embedder:
+    dropout: 0.2
+    regularize_weight: 1.5712131774007265e-17
+train:
+  auto_correct: true
+  batch_size: 128
+  loss_arg: 1.0
+  lr_scheduler: ReduceLROnPlateau
+  lr_scheduler_args:
+    factor: 0.95
+    mode: max
+    patience: 5
+    threshold: 0.0001
+  max_epochs: 400
+  optimizer_args:
+    lr: 0.209
+  type: negative_sampling
+valid:
+  early_stopping:
+    patience: 10
+    threshold:
+      epochs: 50
+      metric_value: 0.05
+AdaE_config:
+  adae: True
+  bi-level: False
+  share: True
+  type: '1vsall'
+  ali_way: 'zp'
+  cie: True
+  # train_mode: ['rank','auto','fix','original']
+  train_mode: 'auto'
+  dim_list: [100,200]
+  choice_list: [0.2]
+  s_u: 2
+  ratio: 1.0
+  urolled: False
+  t_s: 96
+  lr_p: 0.1825
+  device: 'cuda:0'
+  #目前device没用

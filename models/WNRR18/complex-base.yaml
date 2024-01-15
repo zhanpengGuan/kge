@@ -1,39 +1,33 @@
-conve:
+complex:
   entity_embedder:
-    dropout: 0.0
-    regularize_weight: 8.605027799155396e-15
-  feature_map_dropout: 0.48769345636955713
-  projection_dropout: 0.5
+    dropout: 0.5
+    regularize_weight: 4.0e-06
   relation_embedder:
-    dropout: 0.11757230155305998
-    regularize_weight: 2.231687936571624e-14
-  round_dim: true
+    dropout: 0.5
+    regularize_weight: 4.0e-10
 dataset:
-  name: fb15k-237
+  name: wnrr
 eval:
   batch_size: 256
   metrics_per:
     relation_type: true
   trace_level: example
 import:
-- conve
+- complex
 - reciprocal_relations_model
 lookup_embedder:
-  dim: 256
-  initialize: xavier_normal_
+  dim: 128
+  initialize: uniform_
   initialize_args:
     normal_:
       mean: 0.0
-      std: 2.568825067721716e-05
+      std: 0.0005472140383629246
     uniform_:
-      a: -0.43447215763614
+      a: -0.28148249060722197
     xavier_normal_:
       gain: 1.0
     xavier_uniform_:
       gain: 1.0
-  regularize_args:
-    p: 3
-    weighted: true
 model: reciprocal_relations_model
 negative_sampling:
   implementation: batch
@@ -41,23 +35,20 @@ negative_sampling:
     p: -1
 reciprocal_relations_model:
   base_model:
-    entity_embedder:
-      dim: 288
-    relation_embedder:
-      dim: 288
+    type: complex
 train:
   auto_correct: true
-  batch_size: 1024
+  batch_size: 512
   loss_arg: 1.0
   lr_scheduler: ReduceLROnPlateau
   lr_scheduler_args:
     factor: 0.95
     mode: max
-    patience: 9
+    patience: 5
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.004276645525573683
+    lr: 0.5255808623927111
   type: 1vsAll
 valid:
   early_stopping:
