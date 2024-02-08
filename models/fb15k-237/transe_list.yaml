@@ -1,0 +1,90 @@
+dataset:
+  name: fb15k-237
+eval:
+  batch_size: 256
+  metrics_per:
+    relation_type: true
+  trace_level: example
+import:
+- transe
+- multi_lookup_embedder
+- AdaE
+multi_lookup_embedder:
+  dim: 128
+  initialize: uniform_
+  initialize_args:
+    normal_:
+      mean: 0.0
+      std: 3.5688807324453804e-05
+    uniform_:
+      a: -1.0000000000065512e-05
+    xavier_normal_:
+      gain: 1.0
+    xavier_uniform_:
+      gain: 1.0
+  regularize: ''
+model: AdaE
+negative_sampling:
+  num_samples:
+    o: 192
+    p: -1
+    s: 61
+AdaE:
+  base_model:
+    type: transe
+train:
+  auto_correct: true
+  batch_size: 128
+  loss_arg: 1.0
+  lr_scheduler: ReduceLROnPlateau
+  lr_scheduler_args:
+    factor: 0.95
+    mode: max
+    patience: 5
+    threshold: 0.0001
+  max_epochs: 400
+  optimizer: Adam
+  optimizer_args:
+    lr: 0.0003
+  type: darts
+transe:
+  entity_embedder:
+    type: multi_lookup_embedder
+    dropout: 0.1
+    normalize:
+      p: -1.0
+    regularize_weight: 7.469488745511875e-12
+    # pretrain:
+    #   model_filename: '/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20231109-040423-transe-128-0.00030000000000000014-1vsAll-reciprocal_relations_model/checkpoint_best.pt'
+  l_norm: 2.0
+  relation_embedder:
+    type: multi_lookup_embedder
+    dropout: -0.17305121371616672
+    normalize:
+      p: -1.0
+    regularize_weight: 1.8180176908040284e-07
+    # pretrain:
+    #   model_filename: '/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20231109-040423-transe-128-0.00030000000000000014-1vsAll-reciprocal_relations_model/checkpoint_best.pt'
+valid:
+  early_stopping:
+    min_threshold:
+      epochs: 50
+      metric_value: 0.05
+    patience: 10
+AdaE_config:
+  adae: True
+  bi-level: False
+  share: False
+  cie: False
+  type: '1vsall'
+  ali_way: 'zp'
+  # train_mode: ['rank','auto','fix','original']
+  train_mode: 'auto'
+  dim_list: [64,128,256,512]
+  choice_list: [-1]
+  s_u: 2
+  ratio: 0.8
+  urolled: False
+  t_s: 512
+  lr_p: 0.01
+  device: 'cuda:0'

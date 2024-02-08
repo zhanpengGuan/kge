@@ -6,13 +6,13 @@ complex:
   entity_embedder:
     type: multi_lookup_embedder
     dropout: 0.1
-    regularize_weight: 1.0274165130442088e-15
+    regularize_weight: 1.02e-15
     # pretrain:
     #   model_filename: "/home/guanzp/code/AdaE/kge/local/yago3-10/experiments/20240102-223259-complex-512-complex--ed-0.1--rd-0.2-best//checkpoint_best.pt"
   relation_embedder:
     type: multi_lookup_embedder
     dropout: 0.2
-    regularize_weight: 2.934669571854759e-10
+    regularize_weight: 2.9e-10
     # pretrain:
     #   model_filename: "/home/guanzp/code/AdaE/kge/local/yago3-10/experiments/20240102-223259-complex-512-complex--ed-0.1--rd-0.2-best//checkpoint_best.pt"
 dataset:
@@ -102,16 +102,16 @@ AdaE_config:
   share: True
   type: '1vsall'
   ali_way: 'zp'
-  cie: True
+  cie: False
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'auto'
-  dim_list: [128,192]
+  dim_list: [64,128,256,512]
   choice_list: [0.5]
   s_u: 2
   ratio: 0.8
   urolled: False
-  t_s: 128
-  lr_p: 0.1825
+  t_s: 512
+  lr_p: 0.01
   device: 'cuda:3'
   #目前device没用
   

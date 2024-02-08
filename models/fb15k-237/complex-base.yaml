@@ -4,7 +4,7 @@ complex:
     regularize_weight: 1.3e-08
   relation_embedder:
     dropout: 0.5
-    regularize_weight: 8.266519211068944e-14
+    regularize_weight: 8.27e-14
 dataset:
   name: fb15k-237
 eval:
@@ -16,7 +16,7 @@ import:
 - reciprocal_relations_model
 - complex
 lookup_embedder:
-  dim: 256
+  dim: 96
   initialize: uniform_
   initialize_args:
     normal_:

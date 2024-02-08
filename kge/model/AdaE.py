@@ -15,7 +15,7 @@ SLOTS = [0, 1, 2]
 S, P, O = SLOTS
 SLOT_STR = ["s", "p", "o"]
 
-class AdaE(KgeModel):
+class AdaE(ReciprocalRelationsModel):
     r"""Implementation of the AdaE KGE model."""
 
     def __init__(
@@ -28,32 +28,32 @@ class AdaE(KgeModel):
         
         
       
-    # def get_s_embedder(self) -> KgeEmbedder:
-    #         return self._multi_entity_embedder
-    # def get_o_embedder(self) -> KgeEmbedder:
-    #         return self._multi_entity_embedder
-    # def get_p_embedder(self) -> KgeEmbedder:
-    #         return self._multi_relation_embedder
-        self._init_configuration(config, configuration_key)
-        alt_dataset = dataset.shallow_copy()
-        base_model = KgeModel.create(
-            config=config,
-            dataset=alt_dataset,
-            configuration_key=self.configuration_key + ".base_model",
-            init_for_load_only=init_for_load_only,
-        )
-
-        # Initialize this model
+ 
+        # self._init_configuration(config, configuration_key)
+        # alt_dataset = dataset.shallow_copy()
+        # base_model = KgeModel.create(
+        #     config=config,
+        #     dataset=alt_dataset,
+        #     configuration_key=self.configuration_key + ".base_model",
+        #     init_for_load_only=init_for_load_only,
+        # )
+        # # Initialize this model
+        # super().__init__(
+        #     config=config,
+        #     dataset=dataset,
+        #     scorer=base_model.get_scorer(),
+        #     create_embedders=False,
+        #     init_for_load_only=init_for_load_only,
+        # )
+        # self._base_model = base_model
         super().__init__(
-            config=config,
-            dataset=dataset,
-            scorer=base_model.get_scorer(),
-            create_embedders=False,
-            init_for_load_only=init_for_load_only,
-        )
+        config=config,
+        dataset=dataset,
+        configuration_key=None,
+        init_for_load_only=init_for_load_only,)
 
 
-        self._base_model = base_model
+        # 
         # TODO change entity_embedder assignment to sub and obj embedders when support
         # for that is added
         if False:

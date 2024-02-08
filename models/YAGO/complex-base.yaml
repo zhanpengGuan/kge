@@ -38,7 +38,7 @@ import:
 - reciprocal_relations_model
 - complex
 lookup_embedder:
-  dim: 256
+  dim: 356
   initialize: uniform_
   initialize_args:
     normal_:
@@ -58,8 +58,8 @@ model: complex
 negative_sampling:
   implementation: batch
   num_samples:
-    o: 8942
-    s: 8919
+    o: 89
+    s: 89
   shared: true
   with_replacement: false
 reciprocal_relations_model:
@@ -75,9 +75,9 @@ train:
     mode: max
     patience: 5
     threshold: 0.0001
-  max_epochs: 400
+  max_epochs: 100
   optimizer_args:
-    lr: 0.22584037828361303
+    lr: 0.22
   type: negative_sampling
 valid:
   early_stopping:

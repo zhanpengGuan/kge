@@ -1,10 +1,10 @@
 complex:
   entity_embedder:
     dropout: 0.5
-    regularize_weight: 1.3408200403806817e-08
+    regularize_weight: 1.2e-8
   relation_embedder:
     dropout: 0.4
-    regularize_weight: 8.266519211068944e-14
+    regularize_weight: 1.2e-12
 dataset:
   name: fb15k-237
 eval:
@@ -23,7 +23,7 @@ lookup_embedder:
       mean: 0.0
       std: 0.5592429029559286
     uniform_:
-      a: -0.8328168489829233
+      a: -0.2
     xavier_normal_:
       gain: 1.0
     xavier_uniform_:

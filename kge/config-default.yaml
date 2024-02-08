@@ -436,7 +436,7 @@ valid:
 
   # Validation is run every this many epochs during training (disable validation
   # with 0).
-  every: 2
+  every: 5
   
   # Whether to always run validation after train.max_epochs are reached. This
   # only becomes relevant when train.max_epochs mod valid.every != 0.

@@ -34,20 +34,24 @@ class EntityRankingJob_freq(EntityRankingJob):
         self.rank_e, self.rank_r = self.rank_e.to(self.device), self.rank_r.to(self.device)
         self.rank = self.rank_e
         self.count_high,self.count_low,self.count_mixed = 0,0,0
-        self.triples_high,self.triples_low,self.triples_mixed = [],[],[]
+        self.triples_high,self.triples_low,self.triples_mixed,self.triples_example = [],[],[],[]
         for head, relation, tail in self.triples:
-            if self.rank[head] == self.rank[tail] and self.rank[head]==1:
-                self.triples_high.append([head,relation,tail])
-                self.count_high += 1
-            elif self.rank[head] == self.rank[tail] and self.rank[head]==0:
-                self.triples_low.append([head,relation,tail])
-                self.count_low +=1
+            if head == 3084 or tail==3084:
+                self.triples_example.append([head,relation,tail])
             else:
-                self.triples_mixed.append([head,relation,tail])
-                self.count_mixed+=1
+                if self.rank[head] == self.rank[tail] and self.rank[head]==1:
+                    self.triples_high.append([head,relation,tail])
+                    self.count_high += 1
+                elif self.rank[head] == self.rank[tail] and self.rank[head]==0:
+                    self.triples_low.append([head,relation,tail])
+                    self.count_low +=1
+                else:
+                    self.triples_mixed.append([head,relation,tail])
+                    self.count_mixed+=1
         self.triples_high = torch.tensor(self.triples_high)
         self.triples_low = torch.tensor(self.triples_low)
         self.triples_mixed = torch.tensor(self.triples_mixed)
+        self.triples_example = torch.tensor(self.triples_example)
         
         self.loader = torch.utils.data.DataLoader(
             self.triples,
@@ -459,6 +463,7 @@ class EntityRankingJob_freq(EntityRankingJob):
         )
 
         freq = ['high','low','mixed','all']
+        # freq = ['example']
         avg = 0
         for i in freq:
             if i=='high':
@@ -491,9 +496,19 @@ class EntityRankingJob_freq(EntityRankingJob):
                     pin_memory=self.config.get("eval.pin_memory"),
                 )
                 self._evaluate()
-            else:
+            elif i=='all':
                 self.loader = torch.utils.data.DataLoader(
                     self.triples,
+                    collate_fn=self._collate,
+                    shuffle=False,
+                    batch_size=self.batch_size,
+                    num_workers=self.config.get("eval.num_workers"),
+                    pin_memory=self.config.get("eval.pin_memory"),
+                )
+                self._evaluate()
+            else:
+                self.loader = torch.utils.data.DataLoader(
+                    self.triples_example,
                     collate_fn=self._collate,
                     shuffle=False,
                     batch_size=self.batch_size,
@@ -528,8 +543,10 @@ class EntityRankingJob_freq(EntityRankingJob):
             elif i=='mixed':
                 avg +=  trace_entry['mean_reciprocal_rank_filtered']*self.count_mixed
                 self.config.log("-"*18+"\n"+"mixed MRR_filt:{}\n".format(trace_entry['mean_reciprocal_rank_filtered'])+"-"*18+"\n")
-            else:
+            elif i=='all':
                 self.config.log("-"*18+"\n"+"all MRR_filt:{}".format(avg/(self.count_high+self.count_low+self.count_mixed))+"\n"+"-"*18+"\n")
+            else:
+                self.config.log("-"*18+"\n"+"example MRR_filt:{}\n".format(trace_entry['mean_reciprocal_rank_filtered'])+"-"*18+"\n")
             self.config.log(
                 format_trace_entry("eval_epoch", trace_entry, self.config), prefix="  "
             )

@@ -157,20 +157,25 @@ class Architect(object):
     '''
     for name, param in model.named_parameters(recurse=recurse):
       if name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker') :
-        yield param
+        if param.requires_grad:
+          yield param
   def KGE_parameters(self,model,recurse: bool = True):
     '''
     a parameter filter for KGE parmeters
     '''
     for name, param in model.named_parameters(recurse=recurse):
       if  not ( name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
-        
-          yield param
+          #if not share
+          if not name.startswith('_base_model._entity_embedder._embeddings'):
+            if param.requires_grad:
+              yield param
   def nKGE_parameters(self,model,recurse: bool = True):
     '''
     a named parameter filter for KGE parmeters
     '''
     for name, param in model.named_parameters(recurse=recurse):
       if  not ( name.startswith('_base_model._relation_embedder.picker') or name.startswith('_base_model._entity_embedder.picker')) :
-        
-          yield name, param
+       #if not share
+          if not name.startswith('_base_model._entity_embedder._embeddings'):
+            if param.requires_grad:
+              yield name, param

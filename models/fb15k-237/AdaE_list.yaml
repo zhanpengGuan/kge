@@ -1,19 +1,21 @@
-conve:
+
+import:
+- AdaE
+- complex
+- multi_lookup_embedder
+complex:
   entity_embedder:
     type: multi_lookup_embedder
-    dropout: 0.3
-    regularize_weight: 8.605027799155396e-15
-    pretrain:
-     model_filename: "/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20240115-044449-conve/checkpoint_best.pt"
-  feature_map_dropout: 0.48769345636955713
-  projection_dropout: 0.5
+    dropout: 0.5
+    regularize_weight: 1.34e-08
+    # pretrain:
+    #   model_filename: '/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20240103-171738-complex-512-reciprocal_relations_model--ed-0.5--rd-0.4-best/checkpoint_best.pt'
   relation_embedder:
     type: multi_lookup_embedder
-    dropout: 0.11757230155305998
-    regularize_weight: 2.231687936571624e-14
-    pretrain:
-     model_filename: "/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20240115-044449-conve/checkpoint_best.pt"
-  round_dim: true
+    dropout: 0.4
+    regularize_weight: 1.0e-12
+    # pretrain:
+    #   model_filename: '/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20240103-171738-complex-512-reciprocal_relations_model--ed-0.5--rd-0.4-best/checkpoint_best.pt'
 dataset:
   name: fb15k-237
 eval:
@@ -21,20 +23,16 @@ eval:
   metrics_per:
     relation_type: true
   trace_level: example
-import:
-- conve
-- AdaE
-- multi_lookup_embedder
-- reciprocal_relations_model
+
 multi_lookup_embedder:
-  dim: 256
-  initialize: xavier_normal_
+  dim: 20
+  initialize: uniform_
   initialize_args:
     normal_:
       mean: 0.0
-      std: 2.568825067721716e-05
+      std: 0.5592429029559286
     uniform_:
-      a: -0.43447215763614
+      a: -0.8328168489829233
     xavier_normal_:
       gain: 1.0
     xavier_uniform_:
@@ -43,16 +41,17 @@ multi_lookup_embedder:
     p: 3
     weighted: true
 model: AdaE
+
 negative_sampling:
   implementation: batch
   num_samples:
+    o: 1000
     p: -1
+    s: 529
+
 AdaE:
   base_model:
-    entity_embedder:
-      dim: 288
-    relation_embedder:
-      dim: 288
+    type: complex
 train:
   auto_correct: true
   batch_size: 1024
@@ -61,33 +60,37 @@ train:
   lr_scheduler_args:
     factor: 0.95
     mode: max
-    patience: 9
+    patience: 7
     threshold: 0.0001
   max_epochs: 400
   optimizer_args:
-    lr: 0.05
+    lr: 0.25
   type: darts
 valid:
   early_stopping:
     min_threshold:
       epochs: 50
       metric_value: 0.05
-    patience: 10
+    patience: 30
+  every: 5
+job.device:
+  cuda:0
 AdaE_config:
   adae: True
   bi-level: False
-  share: True
+  share: False
   type: '1vsall'
   ali_way: 'zp'
-  cie: True
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'auto'
-  dim_list: [1,256]
-  choice_list: [0.2]
+  dim_list: [64,128,256,512,1024]
+  cie: False
+  choice_list: [-1]
   s_u: 2
   ratio: 0.8
   urolled: False
-  t_s: 512
-  lr_p: 0.1825
+  t_s: 1024
+  lr_p: 0.1
   device: 'cuda:0'
+  folder: None
   #目前device没用

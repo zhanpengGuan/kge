@@ -1,0 +1,20 @@
+# python kge/cli_list.py models/fb15k-237/AdaE_list.yaml cuda:2 "[64,128,256,512,768]" 0.5 0.5 "[-1]" 768 2 0.01 &
+# sleep 2
+# python kge/cli_list.py models/fb15k-237/AdaE_list.yaml cuda:3 "[64,128,256,512,768]" 0.5 0.55 "[-1]" 768 2 0.01 &
+# python kge/cli_list.py models/YAGO/AdaE_list.yaml cuda:7 "[64,128,256,512]" 0.5 0.1 "[-1]" 512 2 0.01 &
+python kge/cli_list.py models/WNRR18/AdaE_list.yaml cuda:2 "[32,64,128,256]" 0.5 0.8 "[-1]" 256 2 0.01 &
+python kge/cli_list.py models/WNRR18/AdaE_list.yaml cuda:3 "[32,64,96,128]" 0.5 0.7 "[-1]" 128 2 0.01 &
+# python kge/cli_list.py models/fb15k-237/AdaE_list.yaml cuda:4 "[32,64,128,256,512]" 0.5 0.5 "[-1]" 512 2 0.01 &
+
+# python kge/cli_list.py models/fb15k-237/AdaE_list.yaml cuda:6 "[32,64,128,256,512,768]" 0.5 0.5 "[-1]" 768 2 0.01 &
+# python kge/cli_list.py models/fb15k-237/AdaE_list.yaml cuda:6 "[32,64,128,256,512]" 0.5 0.5 "[-1]" 512 2 0.01 &
+# python kge/cli_list.py models/YAGO/AdaE_list.yaml cuda:7 "[32,64,128,256,512,1024]" 0.5 0.1 "[-1]" 1024 2 0.01 &
+
+# flexible
+# python kge/cli_list.py models/fb15k-237/distmult_list.yaml cuda:6 "[64,128,256,512,768]" 0.3 0.4 "[-1]" 768 2 0.01 &
+# python kge/cli_list.py models/fb15k-237/transe_list.yaml cuda:3 "[64,128,256,512,768]" 0.0005 0.1 "[-1]" 768 2 0.01 &
+# wait
+# python kge/cli_list.py models/fb15k-237/distmult_list.yaml cuda:6 "[64,128,256,512]" 0.3 0.4 "[-1]" 512 2 0.01 &
+# python kge/cli_list.py models/fb15k-237/transe_list.yaml cuda:3 "[64,128,256,512]" 0.0005 0.1 "[-1]" 512 2 0.01 &
+# python kge/cli_list.py models/fb15k-237/conve_list.yaml cuda:6 "[64,128,256,512]" 0.05 0.05 "[-1]" 512 2 0.01 &
+# python kge/cli_list.py models/fb15k-237/conve_list.yaml cuda:1 "[64,128,256,512]" 0.005 0.05 "[-1]" 512 2 0.01 &

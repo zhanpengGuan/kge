@@ -284,7 +284,7 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                 s_u = self.adae_config['s_u']
                 triples_t, triples_v = None, None
                 #因为loader的要加载完再加一
-                if (self.batch_index+1)%s_u==1:
+                if (self.batch_index+1)%s_u==1 or s_u==1:
                     # split data for darts
                     # triples_t = triples[:int(ratio*triples.shape[0])]
                     triples_t = triples[:l_ratio]
@@ -364,7 +364,8 @@ class TrainingJobDarts(TrainingJob1vsAll,TrainingJobNegativeSampling, TrainingJo
                             # if not self.adae_config['cie']:   
                                 
                                 #对α进行更新，对应伪代码的第一步，也就是用公式6
-                            if batch_index % self.adae_config['s_u'] == 1:
+                            if batch_index % self.adae_config['s_u'] == 1 or self.adae_config['s_u'] == 1:
+                               
                                 self.architect.step(batch_index, batch_t, batch_v, self.adae_config['lr_p'], self.optimizer,self.adae_config['urolled'])
                         
                        

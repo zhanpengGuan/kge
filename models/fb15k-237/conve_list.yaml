@@ -3,16 +3,16 @@ conve:
     type: multi_lookup_embedder
     dropout: 0.3
     regularize_weight: 8.605027799155396e-15
-    pretrain:
-     model_filename: "/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20240115-044449-conve/checkpoint_best.pt"
+    # pretrain:
+    #  model_filename: "/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20240115-044449-conve/checkpoint_best.pt"
   feature_map_dropout: 0.48769345636955713
   projection_dropout: 0.5
   relation_embedder:
     type: multi_lookup_embedder
     dropout: 0.11757230155305998
     regularize_weight: 2.231687936571624e-14
-    pretrain:
-     model_filename: "/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20240115-044449-conve/checkpoint_best.pt"
+    # pretrain:
+    #  model_filename: "/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20240115-044449-conve/checkpoint_best.pt"
   round_dim: true
 dataset:
   name: fb15k-237
@@ -49,10 +49,7 @@ negative_sampling:
     p: -1
 AdaE:
   base_model:
-    entity_embedder:
-      dim: 288
-    relation_embedder:
-      dim: 288
+    type: conve
 train:
   auto_correct: true
   batch_size: 1024
@@ -76,18 +73,18 @@ valid:
 AdaE_config:
   adae: True
   bi-level: False
-  share: True
+  share: False
   type: '1vsall'
   ali_way: 'zp'
-  cie: True
+  cie: False
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'auto'
-  dim_list: [1,256]
-  choice_list: [0.2]
+  dim_list: [64,128,256,512,768]
+  choice_list: [-1]
   s_u: 2
   ratio: 0.8
   urolled: False
   t_s: 512
-  lr_p: 0.1825
+  lr_p: 0.01
   device: 'cuda:0'
   #目前device没用

@@ -1,10 +1,10 @@
 complex:
   entity_embedder:
-    dropout: 0.5
+    dropout: 0.4
     regularize_weight: 4.0e-06
   relation_embedder:
-    dropout: 0.5
-    regularize_weight: 4.0e-10
+    dropout: 0.3
+    regularize_weight: 4.2e-10
 dataset:
   name: wnrr
 eval:
@@ -32,7 +32,9 @@ model: reciprocal_relations_model
 negative_sampling:
   implementation: batch
   num_samples:
+    o: 1000
     p: -1
+    s: 500
 reciprocal_relations_model:
   base_model:
     type: complex
@@ -46,10 +48,10 @@ train:
     mode: max
     patience: 5
     threshold: 0.0001
-  max_epochs: 400
+  max_epochs: 200
   optimizer_args:
     lr: 0.5255808623927111
-  type: 1vsAll
+  type: negative_sampling
 valid:
   early_stopping:
     min_threshold:

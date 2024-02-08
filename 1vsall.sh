@@ -132,7 +132,8 @@
 # kge start models/YAGO/complex.yaml --job.device cuda:0  --train.optimizer.default.args.lr 0.1 &
 
 ## fb15k-237,complex
-# kge start models/fb15k-237/complex.yaml --job.device cuda:5 --train.optimizer.default.args.lr 0.5  --lookup_embedder.dim 512 &
+kge start models/fb15k-237/complex-base.yaml --job.device cuda:4  --lookup_embedder.dim 230 &
+kge start models/fb15k-237/complex-base.yaml --job.device cuda:6  --lookup_embedder.dim 202 &
 # kge start models/fb15k-237/complex.yaml --job.device cuda:6 --train.optimizer.default.args.lr 0.5  --lookup_embedder.dim 1024 &
 
 # kge start models/fb15k-237/complex.yaml --job.device cuda:6 --train.optimizer.default.args.lr 0.5  &
@@ -172,6 +173,12 @@
 
 
 # fre-exp
-kge start models/fb15k-237/complex-base.yaml --job.device cuda:7 --lookup_embedder.dim 128 &
-kge start models/WNRR18/complex-base.yaml --job.device cuda:2 --lookup_embedder.dim 128 &
-kge start models/YAGO/complex-base.yaml --job.device cuda:2 --lookup_embedder.dim 128 &
+# kge start models/fb15k-237/complex-base.yaml --job.device cuda:1 --lookup_embedder.dim  320 &
+# kge start models/fb15k-237/complex.yaml --job.device cuda:7 --lookup_embedder.dim  64 &
+# kge start models/fb15k-237/complex.yaml --job.device cuda:7 --lookup_embedder.dim  128 &
+# kge start models/fb15k-237/complex.yaml --job.device cuda:2 --lookup_embedder.dim 1024 &
+# kge start models/fb15k-237/complex.yaml --job.device cuda:2 --lookup_embedder.dim 2048 &
+# kge start models/WNRR18/complex-base.yaml --job.device cuda:2 --lookup_embedder.dim 212 &
+kge start models/WNRR18/complex-base.yaml --job.device cuda:4 --lookup_embedder.dim 72 &
+kge start models/WNRR18/complex-base.yaml --job.device cuda:6 --lookup_embedder.dim 86 &
+# kge start models/YAGO/complex-base.yaml --job.device cuda:4 --lookup_embedder.dim 356 &

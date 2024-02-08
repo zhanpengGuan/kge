@@ -1,47 +1,42 @@
-conve:
+import:
+- complex
+- multi_lookup_embedder
+- AdaE
+complex:
   entity_embedder:
     type: multi_lookup_embedder
-    dropout: 0.3
-    regularize_weight: 8.605027799155396e-15
-    pretrain:
-     model_filename: "/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20240115-044449-conve/checkpoint_best.pt"
-  feature_map_dropout: 0.48769345636955713
-  projection_dropout: 0.5
+    dropout: 0.36
+    regularize_weight: 4.5e-6
+    # pretrain:
+    #   model_filename: '/home/guanzp/code/AdaE/kge/local/wnrr/rank/20240111-132431AdaE_rank/checkpoint_best.pt'
   relation_embedder:
     type: multi_lookup_embedder
-    dropout: 0.11757230155305998
-    regularize_weight: 2.231687936571624e-14
-    pretrain:
-     model_filename: "/home/guanzp/code/AdaE/kge/local/fb15k-237/experiments/20240115-044449-conve/checkpoint_best.pt"
-  round_dim: true
+    dropout: 0.3
+    regularize_weight: 4.2e-10
+    # pretrain:
+    #   model_filename: '/home/guanzp/code/AdaE/kge/local/wnrr/rank/20240111-132431AdaE_rank/checkpoint_best.pt'
 dataset:
-  name: fb15k-237
+  name: wnrr
 eval:
   batch_size: 256
   metrics_per:
     relation_type: true
   trace_level: example
-import:
-- conve
-- AdaE
-- multi_lookup_embedder
-- reciprocal_relations_model
+
+
 multi_lookup_embedder:
   dim: 256
-  initialize: xavier_normal_
+  initialize: uniform_
   initialize_args:
     normal_:
       mean: 0.0
-      std: 2.568825067721716e-05
+      std: 0.0005472140383629246
     uniform_:
-      a: -0.43447215763614
+      a: -0.28148249060722197
     xavier_normal_:
       gain: 1.0
     xavier_uniform_:
       gain: 1.0
-  regularize_args:
-    p: 3
-    weighted: true
 model: AdaE
 negative_sampling:
   implementation: batch
@@ -49,23 +44,20 @@ negative_sampling:
     p: -1
 AdaE:
   base_model:
-    entity_embedder:
-      dim: 288
-    relation_embedder:
-      dim: 288
+    type: complex
 train:
   auto_correct: true
-  batch_size: 1024
+  batch_size: 512
   loss_arg: 1.0
   lr_scheduler: ReduceLROnPlateau
   lr_scheduler_args:
     factor: 0.95
     mode: max
-    patience: 9
+    patience: 5
     threshold: 0.0001
-  max_epochs: 400
+  max_epochs: 200
   optimizer_args:
-    lr: 0.05
+    lr: 0.5
   type: darts
 valid:
   early_stopping:
@@ -73,21 +65,27 @@ valid:
       epochs: 50
       metric_value: 0.05
     patience: 10
+  every: 5
+
+
+
 AdaE_config:
   adae: True
   bi-level: False
-  share: True
+  share: False
   type: '1vsall'
   ali_way: 'zp'
-  cie: True
   # train_mode: ['rank','auto','fix','original']
   train_mode: 'auto'
-  dim_list: [1,256]
+  cie: False
+  padding: -0.3
+  dim_list: [32,64,128,256,512,1024]
   choice_list: [0.2]
   s_u: 2
   ratio: 0.8
   urolled: False
   t_s: 512
-  lr_p: 0.1825
+  lr_p: 0.01
   device: 'cuda:0'
+  no_picker: False
   #目前device没用

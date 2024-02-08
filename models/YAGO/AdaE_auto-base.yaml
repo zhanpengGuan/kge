@@ -100,7 +100,7 @@ AdaE_config:
   adae: True
   bi-level: False
   share: True
-  type: '1vsall'
+  type: 'ng_sample'
   ali_way: 'zp'
   cie: True
   # train_mode: ['rank','auto','fix','original']

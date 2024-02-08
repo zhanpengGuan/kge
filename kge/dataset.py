@@ -82,7 +82,7 @@ class Dataset(Configurable):
         '''
         
 
-        if   os.path.isfile(data_path+'/'+str(choice_list)+'rank_e.pt'):
+        if os.path.isfile(data_path+'/'+str(choice_list)+'rank_e.pt'):
             rank_e = torch.load(data_path+'/'+str(choice_list)+'rank_e.pt')
             rank_r = torch.load(data_path+'/'+str(choice_list)+'rank_r.pt')
             count_e = torch.load(data_path+'/'+str(choice_list)+'counte.pt')
@@ -96,7 +96,8 @@ class Dataset(Configurable):
                     count_r[relation] += 1
             # 降序count_e，分割0~10%，10%~50%，50%~100%的顺序为2,1，0，数字越大，频率越高
             freq_rank_e = sorted(count_e,reverse=True)
-            pivot = freq_rank_e[int(len(count_e)*0.2)]
+            pivot = freq_rank_e[int(len(count_e)*0.8)]
+            # pivot = 10
             r_ = []
             if choice_list[0] == -1:
                 r_ = torch.unique(torch.tensor(freq_rank_e))

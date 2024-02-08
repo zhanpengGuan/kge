@@ -1,6 +1,7 @@
 import torch
 import pandas as pd
 import openpyxl
+import torch
 def calculate_average_size(choice, rank_e):
     # 创建一个字典，将rank_e与相应的choice值关联起来
     rank_size_dict = {}
@@ -24,9 +25,9 @@ def calculate_average_size(choice, rank_e):
     # result_df.to_excel('a.xlsx')
     return average_sizes, num_sizes
 # 定义你的模型
-checkpoint_path = '/home/guanzp/code/AdaE/kge/local/fb15k-237/list/20240202-060618AdaE_list-auto-list--0.28--a-512-lr_p-0.01-2/checkpoint_best.pt'
+checkpoint_path = '/home/guanzp/code/AdaE/kge/local/wnrr/list/20240130-074301AdaE_list-auto-list--0.3--a-1024-lr_p-0.01-2/checkpoint_best.pt'
 data_path = '/home/guanzp/code/AdaE/kge/data/fb15k-237'
-# data_path = '/home/guanzp/code/AdaE/kge/data/wnrr'
+data_path = '/home/guanzp/code/AdaE/kge/data/wnrr'
 # data_path = '/home/guanzp/code/AdaE/kge/data/yago3-10'
 rank_e = torch.load(data_path+'/[-1]rank_e.pt')
 
@@ -39,6 +40,8 @@ checkpoint = torch.load(checkpoint_path)
 emb = checkpoint['choice_emb']
 Gpro =  torch.zeros(emb.shape,device='cuda:3')
 choice = torch.argmax(emb, dim = -1)
+s_c = torch.nn.Softmax(emb)
+dim_list = checkpoint['config'].options['AdaE_config']['dim_list']
 # 打印参数
 # uni_choice = torch.unique(choice)
 
@@ -49,7 +52,7 @@ choice = torch.argmax(emb, dim = -1)
 # 调用函数并输出结果
 result, avg = calculate_average_size(choice, rank_e)
 for i in range(0,max(rank_e)):
-  print(i,int(result[i]),avg[i])
+  print(i,dim_list[int(result[i])],avg[i])
 workbook = openpyxl.Workbook()
 sheet = workbook.active
 
@@ -65,7 +68,7 @@ for i in range(max(rank_e)):
     sheet.cell(row=i+2, column=3, value=avg[i])
 
 # 将工作簿保存到文件
-workbook.save('/home/guanzp/code/AdaE/kge/结果.xlsx')
+workbook.save('/home/guanzp/code/AdaE/kge/list.xlsx')
 
 # 打印消息，指示数据已写入 Excel 文件
 print("结果已写入 '结果.xlsx'")
