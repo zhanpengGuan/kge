@@ -439,8 +439,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
             emb = self._embeddings_clone(indexes).detach()
         else:
             emb = self._embeddings(indexes).detach()
-        # input_h = torch.cat((self.picker.bucket(self.rank[indexes]),emb),dim=1)
-        input_h = self.picker.bucket(self.rank[indexes])
+        input_h = torch.cat((self.picker.bucket(self.rank[indexes]),emb),dim=1)
+        # input_h = self.picker.bucket(self.rank[indexes])
         pro = self.picker(input_h,self.rank_e_weight[indexes])
         # pro =  o*self.rank_e_weight[indexes][:,1].unsqueeze(1)# high
         # o_low = self.picker_low(input_h)
@@ -570,17 +570,18 @@ class Multi_LookupEmbedder(KgeEmbedder):
             Gpro_index = torch.argmax(probability, dim = -1).unsqueeze(-1)
             Gpro = Gpro.scatter_(1, Gpro_index, 1) 
         mask = torch.matmul(Gpro,self.mask)
-        a = self.adae_config['padding']
-        paddings = (torch.ones(mask.shape[0],mask.shape[1],device=self.device)-mask)*a
+        
+        paddings = (torch.ones(mask.shape[0],mask.shape[1],device=self.device)-mask)*self.adae_config['padding']
         emb = self._embeddings(indexes)
         #soft selection   
         emb_final = emb*mask +paddings
         # emb_final = emb
         with torch.no_grad():
+            pass
             # save fianl emb
-            if not self.is_bilevel:
-                self._embeddings_clone.weight.data[indexes] = emb_final
-                self.choice_emb[indexes] = probability
+            # if not self.is_bilevel:
+            #     self._embeddings_clone.weight.data[indexes] = emb_final
+            #     self.choice_emb[indexes] = probability
 
         return emb_final
 
@@ -654,8 +655,8 @@ class Multi_LookupEmbedder(KgeEmbedder):
             probability = min(1, (frequency - turning_point) / (turning_point * 2))
             # probability= 1
         # 高、低
-        return [1-probability,probability]
-        # return [0,1]
+        # return [1-probability,probability]
+        return [0,1]
     
     def topk(self, logits: Tensor, tau: float = 1, hard: bool = True, eps: float = 1e-10, dim: int = -1, k = 1) -> Tensor:
 
@@ -752,7 +753,7 @@ class Picker(nn.Module):
     def forward(self, input, weight):
         # 上次的emb，离散选择
         pro = self.Picker(input)*weight[:,1].unsqueeze(1)
-        pro_1 = self.Picker_1(input)*weight[:,0].unsqueeze(1)
-        return pro+pro_1
+        # pro_1 = self.Picker_1(input)*weight[:,0].unsqueeze(1)
+        return pro
     
     

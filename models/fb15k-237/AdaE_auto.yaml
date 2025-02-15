@@ -86,10 +86,10 @@ AdaE_config:
   dim_list: [128,512]
   cie: True
   choice_list: [-1]
-  s_u: 2
+  s_u: 4
   ratio: 0.8
   urolled: False
-  t_s: 512
+  t_s: 256
   lr_p: 0.1
   device: 'cuda:0'
   folder: None

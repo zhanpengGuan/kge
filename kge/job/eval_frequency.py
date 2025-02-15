@@ -36,7 +36,9 @@ class EntityRankingJob_freq(EntityRankingJob):
         self.count_high,self.count_low,self.count_mixed = 0,0,0
         self.triples_high,self.triples_low,self.triples_mixed,self.triples_example = [],[],[],[]
         for head, relation, tail in self.triples:
-            if head == 3084 or tail==3084:
+            # emxple里装的是头、尾节点为3084的实体
+            if head == 13245 or tail==13245:
+            # if self.count_e[head] in [1] or self.count_e[tail] in [1]:
                 self.triples_example.append([head,relation,tail])
             else:
                 if self.rank[head] == self.rank[tail] and self.rank[head]==1:
@@ -461,7 +463,7 @@ class EntityRankingJob_freq(EntityRankingJob):
             + self.eval_split
             + " data (epoch {})...".format(self.epoch)
         )
-
+        #前四个都是纯high freq,low freq,mixed 和 all， example是特定的实体所在的三元组
         freq = ['high','low','mixed','all']
         # freq = ['example']
         avg = 0

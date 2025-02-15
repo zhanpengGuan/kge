@@ -143,7 +143,7 @@ def main():
     config = Config() 
     #
     args1 = sys.argv[1:]
-    yaml_name = args1[0] if len(args1)>0 else "models/WNRR18/AdaE_rank.yaml"
+    yaml_name = args1[0] if len(args1)>0 else "models/fb15k-237/AdaE_auto.yaml"
     device = args1[1] if len(args1)>1 else "cuda:6"
     # other hyperparameters
     # rank
@@ -151,15 +151,15 @@ def main():
     if debug:
         rank = True
         if rank:
-            dim_list = eval(str(args1[2])) if len(args1)>2 else [64,1024]
+            dim_list = eval(str(args1[2])) if len(args1)>2 else [64,256]
             # dim = dim_list[-1]
         # fix
         else:
-            dim = args1[2] if len(args1)>2 else 1024
+            dim = args1[2] if len(args1)>2 else 256
         lr = args1[3] if len(args1)>3 else "0.5" 
         dropout = args1[4] if len(args1)>4 else "0.1"
-        choice_list = eval(str(args1[5])) if len(args1)>5 else [0.2]
-        t_s = args1[6] if len(args1)>6 else 1024
+        choice_list = eval(str(args1[5])) if len(args1)>5 else [-1]
+        t_s = args1[6] if len(args1)>6 else 256
         # auto
         s_u =  args1[7] if len(args1)>7 else 2
         lr_p = args1[8] if len(args1)>8 else 0.01
@@ -170,7 +170,7 @@ def main():
     test = False
     # test = True
     if test:
-        args, unknown_args = parser.parse_known_args(("test?/home/guanzp/code/AdaE/kge/local/yago3-10/auto/20240119-040522AdaE_auto-auto-cie--0.28--1024").split("?"))
+        args, unknown_args = parser.parse_known_args(("test?/data1/gzp/local/fb15k-237/auto/20240107-030555AdaE_auto-auto-cie--0.28--0.1-soft-512-drop-0.5no-gumbel-best").split("?"))
     else:
         args, unknown_args = parser.parse_known_args(("start   "+yaml_name).split())
     # args, unknown_args = parser.parse_known_args(("test?local/experiments/fb15k-237/20231012-055709-AdaE_rank-rank-noshare-[0.999]-[64, 256]-ts-nots256--256-0.5-0.5").split("?"))

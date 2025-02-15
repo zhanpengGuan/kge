@@ -611,9 +611,9 @@ class KgeModel(KgeBase):
         dataset = Dataset.create_from(checkpoint, config, dataset, preload_data=False)
         model = KgeModel.create(config, dataset, init_for_load_only=True)
         model.load(checkpoint["model"])
-        # for adae
+        # for adae test
         
-        model._entity_embedder.choice_emb = checkpoint['choice_emb'].to(model.device)
+        # model._entity_embedder.choice_emb = checkpoint['choice_emb'].to(model.device)
         model.eval()
         return model
 

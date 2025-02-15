@@ -15,7 +15,7 @@ SLOTS = [0, 1, 2]
 S, P, O = SLOTS
 SLOT_STR = ["s", "p", "o"]
 
-class AdaE(ReciprocalRelationsModel):
+class AdaE(KgeModel):
     r"""Implementation of the AdaE KGE model."""
 
     def __init__(
@@ -28,29 +28,30 @@ class AdaE(ReciprocalRelationsModel):
         
         
       
- 
-        # self._init_configuration(config, configuration_key)
-        # alt_dataset = dataset.shallow_copy()
-        # base_model = KgeModel.create(
-        #     config=config,
-        #     dataset=alt_dataset,
-        #     configuration_key=self.configuration_key + ".base_model",
-        #     init_for_load_only=init_for_load_only,
-        # )
-        # # Initialize this model
-        # super().__init__(
-        #     config=config,
-        #     dataset=dataset,
-        #     scorer=base_model.get_scorer(),
-        #     create_embedders=False,
-        #     init_for_load_only=init_for_load_only,
-        # )
-        # self._base_model = base_model
+        # 如果不继承ReciprocalRelationsModel,需要下面的代码
+        self._init_configuration(config, configuration_key)
+        alt_dataset = dataset.shallow_copy()
+        base_model = KgeModel.create(
+            config=config,
+            dataset=alt_dataset,
+            configuration_key=self.configuration_key + ".base_model",
+            init_for_load_only=init_for_load_only,
+        )
+        # Initialize this model
         super().__init__(
-        config=config,
-        dataset=dataset,
-        configuration_key=None,
-        init_for_load_only=init_for_load_only,)
+            config=config,
+            dataset=dataset,
+            scorer=base_model.get_scorer(),
+            create_embedders=False,
+            init_for_load_only=init_for_load_only,
+        )
+        self._base_model = base_model
+        ## 如果继承了ReciprocalRelationsModel，需要下面的代码
+        # super().__init__(
+        # config=config,
+        # dataset=dataset,
+        # configuration_key=None,
+        # init_for_load_only=init_for_load_only,)
 
 
         # 

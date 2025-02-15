@@ -25,10 +25,10 @@ def calculate_average_size(choice, rank_e):
     # result_df.to_excel('a.xlsx')
     return average_sizes, num_sizes
 # 定义你的模型
-checkpoint_path = '/home/guanzp/code/AdaE/kge/local/wnrr/list/20240130-074301AdaE_list-auto-list--0.3--a-1024-lr_p-0.01-2/checkpoint_best.pt'
+checkpoint_path = '/data1/gzp/local/yago3-10/auto/20240110-050848AdaE_auto-auto-cie--0.28--0.001-soft-512-drop-0.1small-gumbel/checkpoint_best.pt'
 data_path = '/home/guanzp/code/AdaE/kge/data/fb15k-237'
-data_path = '/home/guanzp/code/AdaE/kge/data/wnrr'
-# data_path = '/home/guanzp/code/AdaE/kge/data/yago3-10'
+# data_path = '/home/guanzp/code/AdaE/kge/data/wnrr'
+data_path = '/home/guanzp/code/AdaE/kge/data/yago3-10'
 rank_e = torch.load(data_path+'/[-1]rank_e.pt')
 
 
@@ -52,7 +52,7 @@ dim_list = checkpoint['config'].options['AdaE_config']['dim_list']
 # 调用函数并输出结果
 result, avg = calculate_average_size(choice, rank_e)
 for i in range(0,max(rank_e)):
-  print(i,dim_list[int(result[i])],avg[i])
+  print(i,int(result[i]),avg[i])
 workbook = openpyxl.Workbook()
 sheet = workbook.active
 

@@ -286,10 +286,10 @@ wait
 # python kge/cli_debug.py models/YAGO/AdaE_auto.yaml cuda:1 '[1,512]'  0.5 0.36 '[-1]' 512 2 0.01 &
 # python kge/cli_debug.py models/YAGO/AdaE_auto.yaml cuda:7 '[1,1024]'  0.5 0.36 '[-1]' 1024 2 0.01 &
 # python kge/cli_debug.py models/YAGO/AdaE_auto.yaml cuda:6 '[1,512]'  0.5 0.36 '[-1]' 2048 2 0.01 &
-python kge/cli_debug.py models/YAGO/conve_auto.yaml cuda:3 '[1,80]'  0.00005 0.36 '[-1]' 512 2 0.01 &
-python kge/cli_debug.py models/YAGO/transe_auto.yaml cuda:2 '[1,80]'  0.5 0.36 '[-1]' 512 2 0.01 &
+# python kge/cli_debug.py models/YAGO/conve_auto.yaml cuda:3 '[1,80]'  0.00005 0.36 '[-1]' 512 2 0.01 &
+# python kge/cli_debug.py models/YAGO/transe_auto.yaml cuda:2 '[1,80]'  0.5 0.36 '[-1]' 512 2 0.01 &
 # python kge/cli_debug.py models/YAGO/distmult_auto.yaml cuda:4 '[1,80]'  0.5 0.36 '[-1]' 256 2 0.01 &
-python kge/cli_debug.py models/fb15k-237/conve_auto.yaml cuda:4 '[1,128]'  0.00005 0.36 '[-1]' 512 2 0.01 &
+python kge/cli_debug.py models/fb15k-237/conve_auto.yaml cuda:4 '[1,128]'  0.5 0.4 '[-1]' 512 2 0.01 &
 python kge/cli_debug.py models/WNRR18/conve_auto.yaml cuda:1 '[1,80]'  0.00005 0.36 '[-1]' 512 2 0.01 &
 # python kge/cli_debug.py models/YAGO/conve_auto.yaml cuda:6 '[1,80]'  0.00001 0.36 '[-1]' 256 2 0.01 &
 # python kge/cli_debug.py models/WNRR18/transe_auto.yaml cuda:6 '[1,80]'  0.05 0.36 '[-1]' 512 2 0.01 &
@@ -318,4 +318,9 @@ wait
 # # python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:4 "[1,256]" 0.5 0.6 "[-1]" 256 3 0.01 &
 # python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:7 "[1,256]" 0.36 0.3 "[-1]" 256 1 0.01 &
 # python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:6 "[1,256]" 0.5 0.1 "[-1]" 256 1 0.011 &
-# python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:4 "[1,256]" 0.5 0.1 "[-1]" 256 3 0.01 &
+# python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:7 "[1,256]" 0.5 0.1 "[-1]" 256 3 0.01 &
+#分析实验
+python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:7 "[1,256]" 0.5 0.1 "[-1]" 256 4 0.01 &
+python kge/cli_debug.py models/WNRR18/AdaE_auto.yaml cuda:7 "[1,128]" 0.5 0.1 "[-1]" 128 2 0.01 &
+
+#极端实验

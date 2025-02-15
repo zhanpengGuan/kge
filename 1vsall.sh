@@ -132,8 +132,8 @@
 # kge start models/YAGO/complex.yaml --job.device cuda:0  --train.optimizer.default.args.lr 0.1 &
 
 ## fb15k-237,complex
-kge start models/fb15k-237/complex-base.yaml --job.device cuda:4  --lookup_embedder.dim 230 &
-kge start models/fb15k-237/complex-base.yaml --job.device cuda:6  --lookup_embedder.dim 202 &
+kge start models/fb15k-237/complex.yaml --job.device cuda:5  --lookup_embedder.dim 512 &
+kge start models/fb15k-237/complex.yaml --job.device cuda:6  --lookup_embedder.dim 512 &
 # kge start models/fb15k-237/complex.yaml --job.device cuda:6 --train.optimizer.default.args.lr 0.5  --lookup_embedder.dim 1024 &
 
 # kge start models/fb15k-237/complex.yaml --job.device cuda:6 --train.optimizer.default.args.lr 0.5  &
@@ -145,7 +145,7 @@ kge start models/fb15k-237/complex-base.yaml --job.device cuda:6  --lookup_embed
 # kge start models/WNRR18/distmult.yaml --job.device cuda:2 --lookup_embedder.dim 256 &
 # kge start models/WNRR18/distmult.yaml --job.device cuda:3 --lookup_embedder.dim 512 &
 # # wait
-# kge start models/WNRR18/distmult.yaml --job.device cuda:5 --lookup_embedder.dim 256 --train.type '1vsAll' --train.optimizer.default.args.lr 0.5 &
+kge start models/WNRR18/complex.yaml --job.device cuda:5 --lookup_embedder.dim 256 --train.type '1vsAll' --train.optimizer.default.args.lr 0.5 &
 
 # wait
 # ## fb15k237, distmult
@@ -179,6 +179,6 @@ kge start models/fb15k-237/complex-base.yaml --job.device cuda:6  --lookup_embed
 # kge start models/fb15k-237/complex.yaml --job.device cuda:2 --lookup_embedder.dim 1024 &
 # kge start models/fb15k-237/complex.yaml --job.device cuda:2 --lookup_embedder.dim 2048 &
 # kge start models/WNRR18/complex-base.yaml --job.device cuda:2 --lookup_embedder.dim 212 &
-kge start models/WNRR18/complex-base.yaml --job.device cuda:4 --lookup_embedder.dim 72 &
-kge start models/WNRR18/complex-base.yaml --job.device cuda:6 --lookup_embedder.dim 86 &
+# kge start models/WNRR18/complex-base.yaml --job.device cuda:4 --lookup_embedder.dim 72 &
+# kge start models/WNRR18/complex-base.yaml --job.device cuda:6 --lookup_embedder.dim 86 &
 # kge start models/YAGO/complex-base.yaml --job.device cuda:4 --lookup_embedder.dim 356 &

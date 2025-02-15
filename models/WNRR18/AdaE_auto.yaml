@@ -7,14 +7,14 @@ complex:
     type: multi_lookup_embedder
     dropout: 0.36
     regularize_weight: 4.5e-8
-    # pretrain:
-    #   model_filename: '/home/guanzp/code/AdaE/kge/local/wnrr/rank/20240111-132431AdaE_rank/checkpoint_best.pt'
+    pretrain:
+      # model_filename: '/data1/gzp/local/wnrr/experiments/20231102-164953-complex-256-0.5255808623927111/checkpoint_best.pt'
   relation_embedder:
     type: multi_lookup_embedder
     dropout: 0.3
     regularize_weight: 4.2e-12
-    # pretrain:
-    #   model_filename: '/home/guanzp/code/AdaE/kge/local/wnrr/rank/20240111-132431AdaE_rank/checkpoint_best.pt'
+    pretrain:
+      # model_filename: '/data1/gzp/local/wnrr/experiments/20231102-164953-complex-256-0.5255808623927111/checkpoint_best.pt'
 dataset:
   name: wnrr
 eval:
@@ -79,12 +79,12 @@ AdaE_config:
   train_mode: 'auto'
   cie: True
   padding: -0.3
-  dim_list: [1,512]
-  choice_list: [0.2]
-  s_u: 2
+  dim_list: [1,256]
+  choice_list: [-1]
+  s_u: 4
   ratio: 0.8
   urolled: False
-  t_s: 512
+  t_s: 256
   lr_p: 0.01
   device: 'cuda:0'
   no_picker: False
